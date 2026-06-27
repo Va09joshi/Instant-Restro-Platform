@@ -5,14 +5,16 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, updateDoc, doc, addDoc } from "firebase/firestore";
 import { Booking } from "@/types/firestore";
-import { Search, Calendar, Filter, Users, MapPin, Clock, MoreHorizontal, UserCheck, XCircle, Loader2, Plus } from "lucide-react";
+import { Search, Calendar, Filter, Users, MapPin, Clock, MoreHorizontal, UserCheck, XCircle, CheckCircle2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BookingsManager() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("Upcoming");
   const [search, setSearch] = useState("");
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,7 +46,7 @@ export default function BookingsManager() {
       restaurantId: user.uid,
       guestName: "Walk-in Guest",
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: new Date().toISOString().split('T')[0],
+      date: selectedDate,
       guests: 2,
       tableId: null,
       tableNumber: null,
@@ -59,6 +61,7 @@ export default function BookingsManager() {
 
   const filteredBookings = bookings.filter(b => 
     b.status === activeTab && 
+    b.date === selectedDate &&
     (b.guestName.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase()))
   );
 
@@ -70,8 +73,16 @@ export default function BookingsManager() {
           <p className="text-slate-500 mt-1">Manage reservations, walk-ins, and floor statuses.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="gap-2 bg-white"><Calendar className="w-4 h-4" /> Today, {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Button>
-          <Button onClick={handleAddWalkIn} className="bg-[#1A3636] hover:bg-[#1A3636]/90 text-white gap-2">
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="pl-9 pr-3 py-2 border border-slate-200 rounded-md text-sm font-medium bg-white focus:outline-none focus:border-emerald-500 transition-colors h-10"
+            />
+          </div>
+          <Button onClick={handleAddWalkIn} className="bg-[#1A3636] hover:bg-[#1A3636]/90 text-white gap-2 h-10">
             <Plus className="w-4 h-4" /> Add Walk-In
           </Button>
         </div>
@@ -109,8 +120,22 @@ export default function BookingsManager() {
         {/* Table / List */}
         <div className="flex-1 overflow-auto">
           {loading ? (
-            <div className="flex items-center justify-center h-full text-slate-400">
-              <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+            <div className="space-y-4 p-6">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="bg-white border border-slate-100 rounded-2xl p-5 flex justify-between items-center gap-4">
+                  <div className="flex items-center gap-4 w-full">
+                    <Skeleton className="w-12 h-12 rounded-2xl shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-5 w-48" />
+                      <Skeleton className="h-4 w-64" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 justify-end shrink-0">
+                    <Skeleton className="h-6 w-24 rounded-full" />
+                    <Skeleton className="h-8 w-20 rounded-lg" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredBookings.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
@@ -120,93 +145,85 @@ export default function BookingsManager() {
               <p>No {activeTab.toLowerCase()} bookings found.</p>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-slate-50 sticky top-0 border-b border-slate-100 z-10">
-                <tr>
-                  <th className="font-semibold text-xs text-slate-400 uppercase tracking-widest p-4 pl-6">Guest Info</th>
-                  <th className="font-semibold text-xs text-slate-400 uppercase tracking-widest p-4">Time</th>
-                  <th className="font-semibold text-xs text-slate-400 uppercase tracking-widest p-4">Details</th>
-                  <th className="font-semibold text-xs text-slate-400 uppercase tracking-widest p-4">Status</th>
-                  <th className="font-semibold text-xs text-slate-400 uppercase tracking-widest p-4 text-right pr-6">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredBookings.map(b => (
-                  <tr key={b.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="p-4 pl-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-                          {b.guestName.charAt(0).toUpperCase()}
+            <div className="space-y-4 p-6">
+              {filteredBookings.map(b => {
+                const isCompleted = b.status === "Completed";
+                const isCancelled = b.status === "Cancelled";
+                const isSeated = b.status === "Seated";
+                const isUpcoming = b.status === "Upcoming";
+
+                return (
+                  <div key={b.id} className="bg-white border border-slate-100 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all">
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 
+                        ${isCompleted ? 'bg-[#e6f7ef] text-[#009b65]' : 
+                          isCancelled ? 'bg-red-50 text-red-500' : 
+                          isSeated ? 'bg-blue-50 text-blue-500' : 
+                          'bg-amber-50 text-amber-500'}`}
+                      >
+                        {isCompleted ? <CheckCircle2 className="w-6 h-6" strokeWidth={2.5} /> : 
+                         isCancelled ? <XCircle className="w-6 h-6" strokeWidth={2.5} /> :
+                         isSeated ? <UserCheck className="w-6 h-6" strokeWidth={2.5} /> :
+                         <Clock className="w-6 h-6" strokeWidth={2.5} />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h4 className="font-bold text-slate-800 text-[17px]">{b.guestName}</h4>
+                          {b.tags?.map(tag => (
+                            <span key={tag} className="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-bold bg-slate-100 text-slate-600">
+                              {tag}
+                            </span>
+                          ))}
                         </div>
-                        <div>
-                          <div className="font-bold text-slate-800 flex items-center gap-2">
-                            {b.guestName}
-                            {b.tags?.map(tag => (
-                              <span key={tag} className="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-bold bg-amber-100 text-amber-700">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                          <div className="text-xs text-slate-500 font-mono">{b.id.substring(0, 8)}...</div>
-                        </div>
+                        <p className="text-[13px] text-slate-400 font-medium flex items-center flex-wrap gap-2">
+                          <span>{b.time}</span> • 
+                          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {b.guests}</span> • 
+                          <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {b.tableNumber || "Unassigned"}</span>
+                        </p>
                       </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                        <Clock className="w-4 h-4 text-slate-400" />
-                        {b.time}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex flex-col gap-1 text-sm text-slate-600 font-medium">
-                        <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-slate-400" /> {b.guests} Guests</span>
-                        {b.tableNumber ? (
-                          <span className="flex items-center gap-1.5 text-emerald-600"><MapPin className="w-4 h-4 text-emerald-500" /> Table {b.tableNumber}</span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 text-slate-400"><MapPin className="w-4 h-4 text-slate-300" /> Unassigned</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold
-                        ${b.status === 'Upcoming' ? 'bg-blue-50 text-blue-600' : ''}
-                        ${b.status === 'Seated' ? 'bg-emerald-50 text-emerald-600' : ''}
-                        ${b.status === 'Completed' ? 'bg-slate-100 text-slate-600' : ''}
+                    </div>
+                    
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-end border-t sm:border-0 border-slate-100 pt-3 sm:pt-0">
+                      <span className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-black border
+                        ${isUpcoming ? 'bg-amber-50 text-amber-600 border-amber-200' : ''}
+                        ${isSeated ? 'bg-blue-50 text-blue-600 border-blue-200' : ''}
+                        ${isCompleted ? 'bg-[#e6f7ef] text-[#009b65] border-[#009b65]/30' : ''}
+                        ${isCancelled ? 'bg-red-50 text-red-600 border-red-200' : ''}
                       `}>
                         {b.status}
                       </span>
-                    </td>
-                    <td className="p-4 pr-6 text-right space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {b.status === 'Upcoming' && (
-                        <>
+                      
+                      <div className="flex items-center gap-2">
+                        {isUpcoming && (
+                          <>
+                            <Button 
+                              onClick={() => updateBookingStatus(b.id, "Cancelled")}
+                              size="sm" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 h-8 rounded-lg px-3"
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              onClick={() => updateBookingStatus(b.id, "Seated")}
+                              size="sm" className="bg-[#1A3636] hover:bg-[#1A3636]/90 text-white h-8 rounded-lg px-3"
+                            >
+                              Seat
+                            </Button>
+                          </>
+                        )}
+                        {isSeated && (
                           <Button 
-                            onClick={() => updateBookingStatus(b.id, "Cancelled")}
-                            size="sm" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                            onClick={() => updateBookingStatus(b.id, "Completed")}
+                            size="sm" className="bg-[#009b65] hover:bg-[#008255] text-white h-8 rounded-lg px-3"
                           >
-                            <XCircle className="w-4 h-4 mr-1" /> Cancel
+                            Mark Completed
                           </Button>
-                          <Button 
-                            onClick={() => updateBookingStatus(b.id, "Seated")}
-                            size="sm" className="bg-[#1A3636] hover:bg-[#1A3636]/90 text-white"
-                          >
-                            <UserCheck className="w-4 h-4 mr-1" /> Seat Guest
-                          </Button>
-                        </>
-                      )}
-                      {b.status === 'Seated' && (
-                        <Button 
-                          onClick={() => updateBookingStatus(b.id, "Completed")}
-                          size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        >
-                          <UserCheck className="w-4 h-4 mr-1" /> Mark Completed
-                        </Button>
-                      )}
-                      <Button size="icon" variant="ghost" className="h-9 w-9"><MoreHorizontal className="w-4 h-4" /></Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

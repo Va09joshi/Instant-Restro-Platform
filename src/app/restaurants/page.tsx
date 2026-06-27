@@ -7,6 +7,7 @@ import { RestaurantSettings } from "@/types/firestore";
 import { motion } from "framer-motion";
 import { Loader2, Search, MapPin, Star, ArrowRight, Utensils } from "lucide-react";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function RestaurantsPage() {
   const [restaurants, setRestaurants] = useState<{id: string, data: RestaurantSettings}[]>([]);
@@ -69,9 +70,23 @@ export default function RestaurantsPage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-16">
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-4 text-neutral-400">
-            <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
-            <p className="font-medium animate-pulse">Finding the best spots...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-3xl overflow-hidden border border-neutral-100 shadow-sm flex flex-col">
+                <Skeleton className="h-48 w-full rounded-none" />
+                <div className="p-6 flex-1 flex flex-col">
+                  <div className="flex justify-between items-start mb-2">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-6 w-12" />
+                  </div>
+                  <Skeleton className="h-4 w-1/2 mb-4" />
+                  <Skeleton className="h-4 w-2/3 mb-6" />
+                  <div className="mt-auto pt-6 border-t border-neutral-100">
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredRestaurants.length === 0 ? (
           <div className="text-center py-24 bg-white rounded-3xl border border-neutral-100 shadow-sm">
