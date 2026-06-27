@@ -80,7 +80,7 @@ function LoginContent() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || "Failed to sign in with Google.");
+      setError(`Error: ${err?.message || ''} | ${err?.code || ''} | ${JSON.stringify(err)} | ${String(err)}`);
     }
   };
 
