@@ -57,3 +57,5 @@ AGENTS.md
 *.cert
 *.crt
 secrets.json
+
+.vercel

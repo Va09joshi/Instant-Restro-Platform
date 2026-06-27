@@ -165,7 +165,7 @@ export default function RestaurantDashboard() {
               <div className="p-4 bg-white border-2 border-neutral-100 rounded-2xl shadow-sm mb-6 relative group cursor-pointer hover:border-emerald-500/30 transition-colors">
                 {/* Generate real QR Code based on selected table */}
                 <QRCodeSVG 
-                  value={`https://tableflow.app/menu?restaurant=lumina&table=${encodeURIComponent(selectedTable)}`} 
+                  value={`https://instant.app/menu?restaurant=lumina&table=${encodeURIComponent(selectedTable)}`} 
                   size={200}
                   level="H"
                   includeMargin={true}

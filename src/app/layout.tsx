@@ -15,7 +15,7 @@ const yesteryear = Yesteryear({
 });
 
 export const metadata: Metadata = {
-  title: "TableFlow | Premium Restaurant Reservations",
+  title: "Instant | Premium Restaurant Reservations",
   description: "Enterprise-grade restaurant reservation and table management platform.",
 };
 
