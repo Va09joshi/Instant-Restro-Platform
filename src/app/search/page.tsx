@@ -9,7 +9,9 @@ import { collection, getDocs } from "firebase/firestore";
 import { RestaurantSettings } from "@/types/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function SearchPage() {
+import { Suspense } from "react";
+
+function SearchContent() {
   const searchParams = useSearchParams();
   const location = searchParams.get("location") || "";
   const router = useRouter();
@@ -120,5 +122,13 @@ export default function SearchPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <SearchContent />
+    </Suspense>
   );
 }
