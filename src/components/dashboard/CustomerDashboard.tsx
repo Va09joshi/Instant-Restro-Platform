@@ -3,12 +3,13 @@
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, setDoc, updateDoc } from "firebase/firestore";
 import { RestaurantSettings, Booking } from "@/types/firestore";
 import { Search, MapPin, Star, Calendar, Clock, QrCode, ChevronRight, X, Loader2, CheckCircle2, XCircle, History, Crosshair } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "@/hooks/useLocation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
@@ -19,9 +20,16 @@ export default function CustomerDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedQR, setSelectedQR] = useState<Booking | null>(null);
   const [activeTab, setActiveTab] = useState<"upcoming" | "history">("upcoming");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [location, setLocation] = useState("");
   const { requestLocation, loading: locationLoading } = useLocation();
+  
+  // Review Modal State
+  const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -44,16 +52,75 @@ export default function CustomerDashboard() {
     fetchData();
   }, [user]);
 
+  const handleSubmitReview = async () => {
+    if (!user || !reviewBooking) return;
+    setReviewSubmitting(true);
+    try {
+      const reviewRef = doc(collection(db, "reviews"));
+      await setDoc(reviewRef, {
+        id: reviewRef.id,
+        restaurantId: reviewBooking.restaurantId,
+        customerId: user.uid,
+        customerName: user.displayName || "Guest",
+        bookingId: reviewBooking.id,
+        rating: reviewRating,
+        comment: reviewText,
+        createdAt: Date.now()
+      });
+
+      // Update booking to mark it as reviewed
+      await updateDoc(doc(db, "bookings", reviewBooking.id), {
+        hasReviewed: true
+      });
+
+      setBookings(prev => prev.map(b => b.id === reviewBooking.id ? { ...b, hasReviewed: true } : b));
+      setReviewBooking(null);
+      setReviewText("");
+      setReviewRating(5);
+    } catch (e) {
+      console.error("Failed to submit review", e);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+      <div className="space-y-10 max-w-6xl mx-auto font-sans w-full p-4 md:p-0">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-5 w-72" />
+          </div>
+          <div className="relative w-full md:w-[400px] flex gap-2">
+            <Skeleton className="h-12 flex-1 rounded-2xl" />
+            <Skeleton className="h-12 w-24 rounded-2xl" />
+          </div>
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className="flex gap-4 border-b border-slate-200 pb-px">
+          <Skeleton className="h-10 w-40" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+
+        {/* Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Skeleton className="h-64 rounded-[2rem] w-full" />
+          <Skeleton className="h-64 rounded-[2rem] w-full" />
+        </div>
       </div>
     );
   }
 
   const upcomingBookings = bookings.filter(b => b.status === "Upcoming" || b.status === "Seated");
   const pastBookings = bookings.filter(b => b.status === "Completed" || b.status === "Cancelled");
+
+  const filteredRestaurants = restaurants.filter(r => 
+    r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r as any).cuisineType?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,32 +142,27 @@ export default function CustomerDashboard() {
             <p className="text-slate-500">Manage your premium dining reservations.</p>
           </div>
           
-          <form onSubmit={handleSearch} className="relative w-full md:w-96 flex gap-2">
+          <div className="relative w-full md:w-[400px] flex gap-2">
             <div className="relative flex-1">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input 
                 type="text" 
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Enter city or location..." 
-                className="w-full pl-12 pr-12 py-3 bg-white border border-slate-200 rounded-2xl text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-2xl shadow-black/30 shadow-black/20"
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  const city = await requestLocation();
-                  if (city) setLocation(city);
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  // Optional: if they start typing, scroll down to the list
+                  if (e.target.value.length === 1) {
+                    document.getElementById('curated-experiences')?.scrollIntoView({ behavior: 'smooth' });
+                  }
                 }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-colors"
-                title="Use current location"
-              >
-                {locationLoading ? <Loader2 className="w-4 h-4 animate-spin text-emerald-500" /> : <Crosshair className="w-4 h-4" />}
-              </button>
+                placeholder="Search restaurants or cuisines..." 
+                className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-sm"
+              />
             </div>
-            <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-black/30 transition-colors flex items-center justify-center">
+            <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-md transition-colors flex items-center justify-center">
               Search
             </button>
-          </form>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -131,12 +193,12 @@ export default function CustomerDashboard() {
                 transition={{ duration: 0.2 }}
               >
                 {upcomingBookings.length === 0 ? (
-                  <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center flex flex-col items-center shadow-2xl shadow-black/30 shadow-black/20">
-                    <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center shadow-inner mb-6 border border-emerald-100">
-                      <Calendar className="w-8 h-8 text-emerald-500" />
+                  <div className="bg-white border border-slate-100 rounded-[2rem] py-24 px-8 text-center flex flex-col items-center justify-center shadow-none w-full max-w-4xl mx-auto my-8">
+                    <div className="w-20 h-20 bg-[#e6f7ef] rounded-full flex items-center justify-center mb-6">
+                      <Calendar className="w-8 h-8 text-[#009b65]" strokeWidth={2} />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">No upcoming reservations</h3>
-                    <p className="text-slate-500 max-w-md">You don't have any upcoming VIP passes. Browse our premium restaurants below to book your next experience.</p>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">No upcoming reservations</h3>
+                    <p className="text-slate-400 max-w-md font-medium">You don't have any upcoming VIP passes.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -233,22 +295,27 @@ export default function CustomerDashboard() {
                       const restaurant = restaurants.find(r => r.id === booking.restaurantId);
                       const isCompleted = booking.status === "Completed";
                       return (
-                        <div key={booking.id} className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-slate-300 transition-colors shadow-2xl shadow-black/30 shadow-black/20">
-                          <div className="flex items-start gap-4">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                              {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
+                        <div key={booking.id} className="bg-white border border-slate-100 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isCompleted ? 'bg-[#e6f7ef] text-[#009b65]' : 'bg-red-50 text-red-500'}`}>
+                              {isCompleted ? <CheckCircle2 className="w-6 h-6" strokeWidth={2.5} /> : <XCircle className="w-6 h-6" strokeWidth={2.5} />}
                             </div>
                             <div>
-                              <h4 className="font-bold text-slate-900 text-lg">{restaurant?.name || "Restaurant"}</h4>
-                              <p className="text-sm text-slate-500 mt-1">{booking.date} at {booking.time} • {booking.guests} Guests</p>
+                              <h4 className="font-bold text-slate-800 text-[17px] mb-0.5">{restaurant?.name || "Restaurant"}</h4>
+                              <p className="text-[13px] text-slate-400 font-medium">
+                                {booking.date} at {booking.time} • {booking.guests} Guests • Table {booking.tableNumber || "VIP"}
+                              </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4 w-full sm:w-auto border-t border-slate-100 sm:border-0 pt-4 sm:pt-0">
-                            <span className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full ${isCompleted ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                          <div className="flex items-center gap-5 w-full sm:w-auto pt-2 sm:pt-0">
+                            <span className={`text-[11px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full ${isCompleted ? 'bg-transparent text-[#009b65] border border-[#009b65]/30' : 'bg-transparent text-red-600 border border-red-200'}`}>
                               {booking.status}
                             </span>
-                            {isCompleted && (
-                              <button className="text-sm font-bold text-emerald-600 hover:text-emerald-700 ml-auto sm:ml-0">
+                            {isCompleted && !booking.hasReviewed && (
+                              <button 
+                                onClick={() => setReviewBooking(booking)}
+                                className="text-[13.5px] font-bold text-[#009b65] hover:text-[#007a4f] transition-colors"
+                              >
                                 Leave Review
                               </button>
                             )}
@@ -264,52 +331,68 @@ export default function CustomerDashboard() {
         </div>
 
         {/* DISCOVER RESTAURANTS */}
-        <div className="pt-10 border-t border-slate-200">
-          <h2 className="text-2xl font-black mb-8 flex items-center gap-3 text-slate-900">
-            <Star className="w-6 h-6 text-amber-400" />
-            Curated Experiences
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {restaurants.map(restaurant => (
-              <div 
-                key={restaurant.id}
-                onClick={() => router.push(`/r/${restaurant.id}`)}
-                className="group bg-white rounded-[2rem] shadow-2xl shadow-black/30 shadow-black/20 border border-slate-200 overflow-hidden cursor-pointer hover:shadow-2xl shadow-black/40 hover:shadow-black/20 hover:-translate-y-1 transition-all duration-300 flex flex-col"
-              >
-                <div className="h-48 bg-slate-100 relative overflow-hidden shrink-0">
-                  <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-emerald-900/50 flex items-center justify-center text-white/10 font-black text-6xl z-0">
-                    {restaurant.name.substring(0,2).toUpperCase()}
+        <div id="curated-experiences" className="pt-10 border-t border-slate-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <h2 className="text-2xl font-black flex items-center gap-3 text-slate-900">
+              <Star className="w-6 h-6 text-amber-400" />
+              Curated Experiences
+            </h2>
+          </div>
+
+          {filteredRestaurants.length === 0 ? (
+            <div className="text-center py-16 bg-slate-50 rounded-3xl border border-slate-200">
+              <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-slate-900 mb-2">No restaurants found</h3>
+              <p className="text-slate-500">We couldn't find any curated experiences matching "{searchTerm}".</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredRestaurants.map(restaurant => (
+                <div 
+                  key={restaurant.id}
+                  onClick={() => router.push(`/r/${restaurant.id}`)}
+                  className="group bg-white rounded-[2rem] shadow-2xl shadow-black/30 shadow-black/20 border border-slate-200 overflow-hidden cursor-pointer hover:shadow-2xl shadow-black/40 hover:shadow-black/20 hover:-translate-y-1 transition-all duration-300 flex flex-col"
+                >
+                  <div className="h-48 bg-slate-100 relative overflow-hidden shrink-0">
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-emerald-900/50 flex items-center justify-center text-white/10 font-black text-6xl z-0">
+                      {restaurant.name.substring(0,2).toUpperCase()}
+                    </div>
+                    {restaurant.logoUrl && (
+                      <img 
+                        src={restaurant.logoUrl} 
+                        alt={restaurant.name} 
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out z-10" 
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity z-20"></div>
+                    <div className="absolute top-4 right-4 z-30">
+                       <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-emerald-700 shadow-sm">
+                         {(restaurant as any).cuisineType || "Various"}
+                       </span>
+                    </div>
+                    <div className="absolute bottom-6 left-6 right-6 z-30">
+                      <h3 className="text-white font-black text-2xl leading-tight mb-2 group-hover:text-emerald-400 transition-colors line-clamp-1">{restaurant.name}</h3>
+                      <p className="text-sm text-slate-200 flex items-start gap-2">
+                        <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+                        <span className="line-clamp-1">{restaurant.address || "Location unavailable"}</span>
+                      </p>
+                    </div>
                   </div>
-                  {restaurant.logoUrl && (
-                    <img 
-                      src={restaurant.logoUrl} 
-                      alt={restaurant.name} 
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out z-10" 
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity z-20"></div>
-                  <div className="absolute bottom-6 left-6 right-6 z-30">
-                    <h3 className="text-white font-black text-2xl leading-tight mb-2 group-hover:text-emerald-400 transition-colors">{restaurant.name}</h3>
-                    <p className="text-sm text-slate-200 flex items-start gap-2">
-                      <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
-                      <span className="line-clamp-1">{restaurant.address || "Location unavailable"}</span>
-                    </p>
-                  </div>
-                </div>
-                <div className="p-6 flex-1 flex flex-col justify-end bg-white">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
-                      Accepting Bookings
-                    </span>
-                    <div className="flex items-center gap-1 text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
-                      Reserve <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <div className="p-6 flex-1 flex flex-col justify-end bg-white">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+                        Accepting Bookings
+                      </span>
+                      <div className="flex items-center gap-1 text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+                        Reserve <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
@@ -373,6 +456,64 @@ export default function CustomerDashboard() {
             </div>
           );
         })()}
+      </AnimatePresence>
+
+      {/* Review Modal */}
+      <AnimatePresence>
+        {reviewBooking && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              onClick={() => setReviewBooking(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2rem] shadow-2xl p-8"
+            >
+              <button 
+                onClick={() => setReviewBooking(null)}
+                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Leave a Review</h3>
+              <p className="text-slate-500 text-sm mb-6">How was your experience at {restaurants.find(r => r.id === reviewBooking.restaurantId)?.name || "this restaurant"}?</p>
+
+              <div className="flex gap-2 justify-center mb-6">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button 
+                    key={star}
+                    onClick={() => setReviewRating(star)}
+                    className="p-1 hover:scale-110 transition-transform"
+                  >
+                    <Star className={`w-10 h-10 ${star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-slate-200 fill-transparent'}`} />
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                placeholder="Share your thoughts about the food, service, and ambiance..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 min-h-[120px] focus:outline-none focus:border-[#009b65] focus:ring-1 focus:ring-[#009b65] mb-6 resize-none text-slate-700"
+              />
+
+              <button
+                onClick={handleSubmitReview}
+                disabled={reviewSubmitting || !reviewText.trim()}
+                className="w-full bg-[#009b65] hover:bg-[#007a4f] disabled:bg-slate-300 text-white font-bold rounded-xl py-4 transition-colors flex items-center justify-center gap-2"
+              >
+                {reviewSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Review"}
+              </button>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </>
   );

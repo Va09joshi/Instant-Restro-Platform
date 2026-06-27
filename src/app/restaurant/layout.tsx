@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
-import { Loader2, LogOut } from "lucide-react";
+import { Loader2, LogOut, Home, Calendar, ScanLine, Utensils, Settings, Menu } from "lucide-react";
 
 export default function RestaurantLayout({ children }: { children: React.ReactNode }) {
   const { user, role, loading } = useAuth();
@@ -96,9 +96,37 @@ export default function RestaurantLayout({ children }: { children: React.ReactNo
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 md:ml-64">
+      <main className="flex-1 p-4 md:p-8 md:ml-64 pb-24 md:pb-8">
         {children}
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around items-center p-3 z-50 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        {[
+          { href: "/restaurant/dashboard", icon: Home, label: "Home" },
+          { href: "/restaurant/bookings", icon: Calendar, label: "Bookings" },
+          { href: "/restaurant/scanner", icon: ScanLine, label: "Scan" },
+          { href: "/restaurant/menu", icon: Utensils, label: "Menu" },
+          { href: "/restaurant/settings", icon: Settings, label: "Settings" },
+        ].map((link) => {
+          const isActive = pathname === link.href;
+          const Icon = link.icon;
+          return (
+            <Link 
+              key={link.href}
+              href={link.href}
+              className={`flex flex-col items-center gap-1 min-w-[64px] ${isActive ? 'text-[#009b65]' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-[#e6f7ef]' : 'bg-transparent'}`}>
+                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+              </div>
+              <span className={`text-[10px] font-bold ${isActive ? 'text-[#009b65]' : 'text-slate-500'}`}>
+                {link.label}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

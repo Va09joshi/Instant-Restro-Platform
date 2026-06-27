@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, query, where, getDocs, setDoc, serverTimestamp } from "firebase/firestore";
-import { RestaurantSettings, TableLayout, Booking } from "@/types/firestore";
-import { Loader2, ArrowLeft, Users, Clock, Calendar, MapPin, CheckCircle2 } from "lucide-react";
+import { RestaurantSettings, Table, Booking } from "@/types/firestore";
+import { Loader2, ArrowLeft, Users, Clock, Calendar, MapPin, CheckCircle2, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BookTablePage() {
   const { user } = useAuth();
@@ -16,18 +17,20 @@ export default function BookTablePage() {
   const restaurantId = params.restaurantId as string;
 
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
-  const [tables, setTables] = useState<TableLayout[]>([]);
+  const [tables, setTables] = useState<Table[]>([]);
   const [existingBookings, setExistingBookings] = useState<Booking[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [preOrders, setPreOrders] = useState<Record<string, number>>({});
 
   // Booking Form State
   const [guestName, setGuestName] = useState(user?.displayName || "");
   const [partySize, setPartySize] = useState(2);
   const [time, setTime] = useState("19:00");
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [selectedArea, setSelectedArea] = useState<string>("Main Hall");
   const date = new Date().toISOString().split('T')[0]; // Today
 
   useEffect(() => {
@@ -50,8 +53,13 @@ export default function BookTablePage() {
         // Fetch Tables
         const tablesQ = query(collection(db, "tables"), where("restaurantId", "==", restaurantId));
         const tablesSnap = await getDocs(tablesQ);
-        const tablesData = tablesSnap.docs.map(doc => doc.data() as TableLayout);
+        const tablesData = tablesSnap.docs.map(doc => doc.data() as Table);
         setTables(tablesData);
+        
+        const allAreas = Array.from(new Set(tablesData.map(t => t.area || "Main Hall")));
+        if (allAreas.length > 0) {
+            setSelectedArea(allAreas[0]);
+        }
 
         // Fetch today's bookings for this restaurant to check availability
         const bookingsQ = query(
@@ -70,6 +78,16 @@ export default function BookTablePage() {
       }
     }
     fetchData();
+
+    // Check if there's a pre-order cart passed from the menu page
+    try {
+      const savedCart = localStorage.getItem(`restro_cart_${restaurantId}`);
+      if (savedCart) {
+        setPreOrders(JSON.parse(savedCart));
+      }
+    } catch (e) {
+      console.error("Failed to parse cart", e);
+    }
   }, [restaurantId, date]);
 
   const handleBook = async () => {
@@ -92,10 +110,14 @@ export default function BookTablePage() {
         tableNumber: selectedTable?.tableNumber || "T?",
         status: "Upcoming",
         tags: ["Web Booking"],
+        preOrders: Object.keys(preOrders).length > 0 ? preOrders : null,
         createdAt: Date.now(),
       };
 
       await setDoc(doc(db, "bookings", bookingId), newBooking);
+      
+      // Clear cart
+      localStorage.removeItem(`restro_cart_${restaurantId}`);
       setSuccess(true);
       
     } catch (error) {
@@ -107,8 +129,35 @@ export default function BookTablePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+      <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+        {/* Left Form Skeleton */}
+        <div className="w-full md:w-[450px] lg:w-[500px] bg-white h-screen overflow-y-auto border-r border-slate-100 flex flex-col">
+          <div className="p-8 space-y-8">
+            <Skeleton className="h-6 w-32 mb-12" />
+            
+            <div>
+              <Skeleton className="h-8 w-64 mb-2" />
+              <Skeleton className="h-4 w-48 mb-6" />
+            </div>
+
+            <div className="space-y-6">
+              <Skeleton className="h-16 w-full rounded-2xl" />
+              <Skeleton className="h-16 w-full rounded-2xl" />
+              <Skeleton className="h-16 w-full rounded-2xl" />
+            </div>
+            
+            <div className="pt-6">
+              <Skeleton className="h-16 w-full rounded-2xl" />
+            </div>
+          </div>
+        </div>
+        
+        {/* Right Floor Plan Skeleton */}
+        <div className="flex-1 bg-slate-100/50 p-8 flex flex-col">
+          <div className="bg-white rounded-[2rem] border border-slate-200 flex-1 p-8 shadow-sm flex items-center justify-center">
+            <Skeleton className="w-full max-w-2xl h-[500px] rounded-3xl" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -149,6 +198,9 @@ export default function BookTablePage() {
       .map(b => b.tableId)
   );
 
+  const allAreasSet = Array.from(new Set(tables.map(t => t.area || "Main Hall")));
+  const tablesInArea = tables.filter(t => (t.area || "Main Hall") === selectedArea);
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24 font-sans text-slate-800">
       {/* Header */}
@@ -162,7 +214,7 @@ export default function BookTablePage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto p-6 space-y-8">
+      <div className="max-w-4xl mx-auto p-6 space-y-8">
         
         {/* Booking Details Form */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-6">
@@ -189,7 +241,7 @@ export default function BookTablePage() {
                   onChange={(e) => setPartySize(Number(e.target.value))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500 font-medium appearance-none"
                 >
-                  {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n} People</option>)}
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n} People</option>)}
                 </select>
               </div>
             </div>
@@ -210,21 +262,45 @@ export default function BookTablePage() {
         </div>
 
         {/* Interactive Floor Plan */}
-        <div className="space-y-4">
-          <div>
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mt-8">
+          <div className="p-6 border-b border-slate-100 bg-slate-50/50">
             <h2 className="font-bold text-xl">Select a Table</h2>
-            <p className="text-sm text-slate-500">Tap an available table on the floor plan.</p>
+            <p className="text-sm text-slate-500">Choose your preferred area and select an available table.</p>
           </div>
 
-          <div className="w-full h-[400px] bg-[#e6d5c3] rounded-3xl border-8 border-slate-800 relative overflow-hidden shadow-inner"
-               style={{ backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent 80px, rgba(0,0,0,0.06) 80px, rgba(0,0,0,0.06) 82px)` }}
+          {/* Area Tabs */}
+          <div className="flex overflow-x-auto no-scrollbar border-b border-slate-100 bg-white p-2 gap-2">
+              {allAreasSet.map((area) => (
+                  <button
+                      key={area}
+                      onClick={() => {
+                          setSelectedArea(area);
+                          setSelectedTableId(null);
+                      }}
+                      className={`px-5 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
+                          selectedArea === area 
+                              ? "bg-slate-100 text-emerald-700 shadow-sm border border-slate-200/60" 
+                              : "text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-transparent"
+                      }`}
+                  >
+                      {area}
+                  </button>
+              ))}
+          </div>
+
+          <div className="w-full h-[450px] relative bg-[#f1f5f9] overflow-hidden"
+               style={{
+                   backgroundImage: "radial-gradient(#cbd5e1 1px, transparent 0)",
+                   backgroundSize: "32px 32px"
+               }}
           >
-            {tables.map(table => {
+            {tablesInArea.map(table => {
               const isBooked = bookedTableIds.has(table.id);
               const isSelected = selectedTableId === table.id;
               
               const fitsParty = table.capacity >= partySize;
               const isAvailable = !isBooked && fitsParty;
+              const isCircle = table.shape === 'circle';
 
               return (
                 <div
@@ -232,35 +308,56 @@ export default function BookTablePage() {
                   onClick={() => {
                     if (isAvailable) setSelectedTableId(table.id);
                   }}
-                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center transition-all duration-300 border shadow-md
-                    ${table.shape === 'circle' ? 'rounded-full' : 'rounded-2xl'}
+                  className={`absolute flex flex-col items-center justify-center transition-all duration-200 z-10 select-none
+                    ${isCircle ? "w-[80px] h-[80px] rounded-full" : "w-[100px] h-[80px] rounded-2xl"}
                     ${isSelected 
-                      ? 'bg-emerald-600 border-emerald-800 text-white shadow-emerald-500/50 scale-110 z-20' 
+                      ? "bg-emerald-50 border-2 border-emerald-500 shadow-lg shadow-emerald-500/20 z-20 scale-105" 
                       : isBooked 
-                        ? 'bg-slate-300 border-slate-400 text-slate-500 opacity-60 cursor-not-allowed'
+                        ? "bg-slate-200 border border-slate-300 text-slate-400 opacity-60 cursor-not-allowed"
                         : fitsParty
-                          ? 'bg-white border-slate-300 text-slate-700 hover:border-emerald-400 cursor-pointer hover:scale-105'
-                          : 'bg-white/50 border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
+                          ? "bg-white border border-slate-300 text-slate-700 hover:border-emerald-400 cursor-pointer shadow-md hover:shadow-lg hover:-translate-y-1"
+                          : "bg-white/50 border border-slate-200 text-slate-400 opacity-60 cursor-not-allowed"
                     }
                   `}
                   style={{
-                    left: `${table.positionX}%`,
-                    top: `${table.positionY}%`,
-                    width: table.shape === 'circle' ? '60px' : '80px',
-                    height: table.shape === 'circle' ? '60px' : '60px',
+                    left: `calc(${table.positionX}% - ${isCircle ? 40 : 50}px)`,
+                    top: `calc(${table.positionY}% - 40px)`,
                   }}
                 >
-                  <span className="font-bold text-lg leading-none">{table.tableNumber}</span>
-                  <span className="text-[10px] font-medium opacity-80 mt-1">{table.capacity}p</span>
+                  <span className="font-bold tracking-tight text-lg leading-none">{table.tableNumber}</span>
+                  <div className="flex items-center gap-1 mt-1 text-xs font-semibold opacity-80">
+                      <Users className="w-3 h-3" /> {table.capacity}
+                  </div>
+                  
+                  {/* VIP Star */}
+                  {table.isVip && (
+                      <div className="absolute -top-3 -right-3 z-30 bg-amber-400 text-amber-950 p-1.5 rounded-full shadow-md border-2 border-white">
+                          <Star className="w-3 h-3 fill-current" />
+                      </div>
+                  )}
+
+                  {/* Chairs indicators */}
+                  {!isCircle && (
+                      <>
+                          <div className={`absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-2 rounded-t-lg -z-10 ${isBooked ? 'bg-slate-200' : 'bg-slate-300'}`} />
+                          <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-2 rounded-b-lg -z-10 ${isBooked ? 'bg-slate-200' : 'bg-slate-300'}`} />
+                      </>
+                  )}
                 </div>
               );
             })}
+
+            {tablesInArea.length === 0 && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 pointer-events-none">
+                    <p className="text-lg font-medium text-slate-500">No tables in this area</p>
+                </div>
+            )}
           </div>
 
-          <div className="flex gap-4 text-xs font-medium text-slate-500 justify-center">
-            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-white border rounded-sm"></div> Available</div>
-            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-slate-300 border rounded-sm"></div> Booked</div>
-            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-600 border rounded-sm"></div> Selected</div>
+          <div className="flex gap-4 text-xs font-bold text-slate-500 justify-center p-4 border-t border-slate-100 bg-slate-50/50">
+            <div className="flex items-center gap-2"><div className="w-4 h-4 bg-white border border-slate-300 rounded-md shadow-sm"></div> Available</div>
+            <div className="flex items-center gap-2"><div className="w-4 h-4 bg-slate-200 border border-slate-300 rounded-md shadow-sm"></div> Booked / Too Small</div>
+            <div className="flex items-center gap-2"><div className="w-4 h-4 bg-emerald-50 border-2 border-emerald-500 rounded-md shadow-sm"></div> Selected</div>
           </div>
         </div>
 

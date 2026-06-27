@@ -91,6 +91,8 @@ export interface Booking {
     price: number;
   }[];
   createdAt: number;
+  hasReviewed?: boolean;
+  customerId?: string;
 }
 
 export type ReservationStatus = "PENDING" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";

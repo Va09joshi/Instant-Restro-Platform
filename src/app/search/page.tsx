@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { RestaurantSettings } from "@/types/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -51,8 +52,18 @@ export default function SearchPage() {
       <p className="text-slate-500 mb-10">{results.length} places found</p>
 
       {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="rounded-[2rem] border border-slate-200 overflow-hidden bg-white flex flex-col h-[340px]">
+              <Skeleton className="h-56 w-full rounded-none" />
+              <div className="p-6 flex-1 flex flex-col justify-end">
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-6 w-32 rounded-full" />
+                  <Skeleton className="h-6 w-6 rounded-full" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : results.length === 0 ? (
         <div className="text-center py-20 bg-slate-50 rounded-[2rem] border border-slate-200">
