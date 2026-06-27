@@ -66,12 +66,15 @@ export default function SettingsPage() {
     setSettings(prev => ({
       ...prev,
       operatingHours: {
-        ...prev.operatingHours,
+        ...(prev.operatingHours || {}),
         [day]: {
-          ...prev.operatingHours?.[day],
+          isOpen: false,
+          open: "09:00",
+          close: "22:00",
+          ...((prev.operatingHours && prev.operatingHours[day]) || {}),
           [field]: value
         }
-      }
+      } as Record<string, { isOpen: boolean; open: string; close: string }>
     }));
   };
 

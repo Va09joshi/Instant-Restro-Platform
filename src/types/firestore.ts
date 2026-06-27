@@ -67,6 +67,8 @@ export interface RestaurantSettings {
   address: string;
   description: string;
   logoUrl?: string;
+  cuisineType?: string;
+  coverImage?: string;
   operatingHours: {
     [key: string]: { isOpen: boolean; open: string; close: string }
   };
