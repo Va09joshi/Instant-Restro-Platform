@@ -79,7 +79,8 @@ function LoginContent() {
         router.push("/customer/dashboard");
       }
     } catch (err: any) {
-      setError("Failed to sign in with Google.");
+      console.error(err);
+      setError(err?.message || "Failed to sign in with Google.");
     }
   };
 
