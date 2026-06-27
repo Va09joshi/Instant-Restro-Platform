@@ -6,8 +6,10 @@ import { db } from "@/lib/firebase";
 import { RestaurantSettings } from "@/types/firestore";
 import { motion } from "framer-motion";
 import { Loader2, Search, MapPin, Star, ArrowRight, Utensils } from "lucide-react";
-import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CustomerMobileNav } from "@/components/ui/CustomerMobileNav";
+import Link from "next/link";
 
 export default function RestaurantsPage() {
   const [restaurants, setRestaurants] = useState<{id: string, data: RestaurantSettings}[]>([]);
@@ -39,8 +41,8 @@ export default function RestaurantsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-neutral-50 font-sans">
-      {/* Header */}
+    <div className="min-h-screen bg-neutral-50 pb-24 md:pb-8">
+      {/* Hero Header */}
       <div className="bg-[#0A1616] text-white pt-24 pb-16 px-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] -z-0 translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
         <div className="max-w-7xl mx-auto relative z-10">
@@ -164,6 +166,7 @@ export default function RestaurantsPage() {
           </motion.div>
         )}
       </div>
+      <CustomerMobileNav />
     </div>
   );
 }

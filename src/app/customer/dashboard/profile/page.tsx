@@ -2,12 +2,13 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { User, Mail, Phone, Lock } from "lucide-react";
+import { CustomerMobileNav } from "@/components/ui/CustomerMobileNav";
 
 export default function ProfilePage() {
   const { user } = useAuth();
 
   return (
-    <div className="max-w-4xl space-y-8 font-sans">
+    <div className="max-w-4xl space-y-8 font-sans pb-24 md:pb-8 relative min-h-screen p-4 md:p-8">
       <div>
         <h1 className="text-3xl font-black text-slate-900 mb-2">My Profile</h1>
         <p className="text-slate-500">Manage your personal information.</p>
@@ -84,6 +85,7 @@ export default function ProfilePage() {
           </div>
         </form>
       </div>
+      <CustomerMobileNav />
     </div>
   );
 }

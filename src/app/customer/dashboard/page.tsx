@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import CustomerDashboard from "@/components/dashboard/CustomerDashboard";
+import { CustomerMobileNav } from "@/components/ui/CustomerMobileNav";
 
 export default function DashboardPage() {
   const { user, role } = useAuth();
@@ -20,8 +21,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative pb-24 md:pb-0 min-h-screen">
       <CustomerDashboard />
+      <CustomerMobileNav />
     </div>
   );
 }
