@@ -290,39 +290,64 @@ export default function CustomerDashboard() {
                     <p className="text-slate-500 font-medium">No past bookings found.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {pastBookings.map(booking => {
-                      const restaurant = restaurants.find(r => r.id === booking.restaurantId);
-                      const isCompleted = booking.status === "Completed";
-                      return (
-                        <div key={booking.id} className="bg-white border border-slate-100 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isCompleted ? 'bg-[#e6f7ef] text-[#009b65]' : 'bg-red-50 text-red-500'}`}>
-                              {isCompleted ? <CheckCircle2 className="w-6 h-6" strokeWidth={2.5} /> : <XCircle className="w-6 h-6" strokeWidth={2.5} />}
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-slate-800 text-[17px] mb-0.5">{restaurant?.name || "Restaurant"}</h4>
-                              <p className="text-[13px] text-slate-400 font-medium">
-                                {booking.date} at {booking.time} • {booking.guests} Guests • Table {booking.tableNumber || "VIP"}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-5 w-full sm:w-auto pt-2 sm:pt-0">
-                            <span className={`text-[11px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full ${isCompleted ? 'bg-transparent text-[#009b65] border border-[#009b65]/30' : 'bg-transparent text-red-600 border border-red-200'}`}>
-                              {booking.status}
-                            </span>
-                            {isCompleted && !booking.hasReviewed && (
-                              <button 
-                                onClick={() => setReviewBooking(booking)}
-                                className="text-[13.5px] font-bold text-[#009b65] hover:text-[#007a4f] transition-colors"
-                              >
-                                Leave Review
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-100 text-[11px] uppercase tracking-widest text-slate-500 font-bold">
+                            <th className="px-6 py-4 font-bold">Restaurant</th>
+                            <th className="px-6 py-4 font-bold">Date & Time</th>
+                            <th className="px-6 py-4 font-bold">Details</th>
+                            <th className="px-6 py-4 font-bold">Status</th>
+                            <th className="px-6 py-4 font-bold text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {pastBookings.map(booking => {
+                            const restaurant = restaurants.find(r => r.id === booking.restaurantId);
+                            const isCompleted = booking.status === "Completed";
+                            
+                            return (
+                              <tr key={booking.id} className="hover:bg-slate-50/50 transition-colors group">
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isCompleted ? 'bg-[#e6f7ef] text-[#009b65]' : 'bg-red-50 text-red-500'}`}>
+                                      {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                                    </div>
+                                    <span className="font-bold text-slate-800">{restaurant?.name || "Restaurant"}</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="text-sm font-medium text-slate-700">{booking.date}</div>
+                                  <div className="text-xs text-slate-400">{booking.time}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="text-sm font-medium text-slate-700">{booking.guests} Guests</div>
+                                  <div className="text-xs text-slate-400">Table {booking.tableNumber || "VIP"}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full ${isCompleted ? 'bg-transparent text-[#009b65] border border-[#009b65]/30' : 'bg-transparent text-red-600 border border-red-200'}`}>
+                                    {booking.status}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  {isCompleted && !booking.hasReviewed ? (
+                                    <button 
+                                      onClick={() => setReviewBooking(booking)}
+                                      className="text-[13px] font-bold text-[#009b65] hover:text-[#007a4f] transition-colors"
+                                    >
+                                      Leave Review
+                                    </button>
+                                  ) : (
+                                    <span className="text-[13px] font-medium text-slate-300">-</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </motion.div>

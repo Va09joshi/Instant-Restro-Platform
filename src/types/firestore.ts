@@ -58,6 +58,7 @@ export interface Table {
   area?: string; // e.g. "Main Hall", "A/C", "Outdoor"
   positionX: number; // 0-100 percentage (Legacy)
   positionY: number; // 0-100 percentage (Legacy)
+  color?: string; // Tailwind color class or hex for the table
 }
 
 export interface RestaurantSettings {

@@ -133,36 +133,54 @@ export default function RestaurantDashboard() {
             </Link>
           </div>
           
-          <div className="space-y-4">
+          <div className="overflow-x-auto w-full">
             {upcomingBookings.length === 0 ? (
               <div className="text-center p-8 text-slate-400">
                 No upcoming bookings right now.
               </div>
             ) : (
-              upcomingBookings.map((booking, i) => (
-                <div key={booking.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:border-emerald-100 hover:bg-emerald-50/30 transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">
-                      {booking.guestName.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-800">{booking.guestName}</h4>
-                      <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 font-medium">
-                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {booking.time}</span>
-                        <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {booking.guests} Guests</span>
-                        {booking.tableNumber && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {booking.tableNumber}</span>}
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold
-                      ${booking.tags?.includes('VIP') ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-600'}
-                    `}>
-                      {booking.status}
-                    </span>
-                  </div>
-                </div>
-              ))
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-[11px] uppercase tracking-widest text-slate-500 font-bold">
+                    <th className="px-4 py-4 rounded-tl-xl">Guest</th>
+                    <th className="px-4 py-4">Time</th>
+                    <th className="px-4 py-4">Details</th>
+                    <th className="px-4 py-4 rounded-tr-xl">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {upcomingBookings.map((booking, i) => (
+                    <tr key={booking.id} className="hover:bg-emerald-50/30 transition-colors group">
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">
+                            {booking.guestName.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-bold text-[14px] text-slate-800">{booking.guestName}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                          <Clock className="w-4 h-4 text-emerald-500" /> {booking.time}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
+                          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {booking.guests}</span>
+                          {booking.tableNumber && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {booking.tableNumber}</span>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest
+                          ${booking.tags?.includes('VIP') ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-600'}
+                        `}>
+                          {booking.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </div>

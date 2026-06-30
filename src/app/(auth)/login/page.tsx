@@ -20,6 +20,8 @@ function LoginContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -53,6 +55,11 @@ function LoginContent() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (isGoogleLoading) return;
+    
+    setIsGoogleLoading(true);
+    setError("");
+    
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
@@ -80,7 +87,18 @@ function LoginContent() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(`Error: ${err?.message || ''} | ${err?.code || ''} | ${JSON.stringify(err)} | ${String(err)}`);
+      
+      // Ignore errors when user closes popup or double-clicks
+      if (
+        err?.code === 'auth/cancelled-popup-request' || 
+        err?.code === 'auth/popup-closed-by-user'
+      ) {
+        return;
+      }
+      
+      setError(`Authentication failed. Please try again.`);
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 

@@ -40,26 +40,26 @@ export default function BookingsPage() {
   if (loading) return <div className="flex justify-center p-20"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
 
   return (
-    <div className="max-w-4xl space-y-8 font-sans">
+    <div className="max-w-3xl mx-auto space-y-8 font-sans py-8 p-4 md:p-8">
       <div>
         <h1 className="text-3xl font-black text-slate-900 mb-2">My Bookings</h1>
         <p className="text-slate-500">View and manage your upcoming VIP reservations.</p>
       </div>
 
       {bookings.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center flex flex-col items-center shadow-2xl shadow-black/30 shadow-black/20">
-          <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center shadow-inner mb-6 border border-emerald-100">
+        <div className="bg-white border border-slate-100 rounded-[2rem] p-16 text-center flex flex-col items-center shadow-xl shadow-slate-200/50 w-full">
+          <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6">
             <Calendar className="w-8 h-8 text-emerald-500" />
           </div>
           <h3 className="text-xl font-bold text-slate-900 mb-2">No upcoming reservations</h3>
           <p className="text-slate-500 max-w-md">You don't have any upcoming VIP passes.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
           {bookings.map(booking => {
             const restaurant = restaurants.find(r => r.id === booking.restaurantId);
             return (
-              <div key={booking.id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden flex flex-col shadow-xl shadow-black/30">
+              <div key={booking.id} className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden flex flex-col shadow-xl shadow-slate-200/50">
                 <div className="bg-slate-900 p-6 relative overflow-hidden">
                   <div className="flex justify-between items-start mb-2 relative z-10">
                     <div>

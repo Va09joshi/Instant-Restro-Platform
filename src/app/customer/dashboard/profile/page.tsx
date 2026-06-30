@@ -8,13 +8,13 @@ export default function ProfilePage() {
   const { user } = useAuth();
 
   return (
-    <div className="max-w-4xl space-y-8 font-sans pb-24 md:pb-8 relative min-h-screen p-4 md:p-8">
+    <div className="max-w-3xl mx-auto space-y-8 font-sans pb-24 md:pb-8 relative min-h-screen p-4 md:p-8">
       <div>
         <h1 className="text-3xl font-black text-slate-900 mb-2">My Profile</h1>
         <p className="text-slate-500">Manage your personal information.</p>
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm max-w-3xl">
+      <div className="bg-white border border-slate-100 rounded-[2rem] p-8 md:p-10 shadow-xl shadow-slate-200/50 w-full">
         <div className="flex items-center gap-6 mb-8 pb-8 border-b border-slate-100">
           <div className="w-24 h-24 bg-[#009b65] rounded-full flex items-center justify-center text-white font-black text-4xl shadow-lg shadow-[#009b65]/30 uppercase">
             {user?.displayName ? user.displayName[0] : user?.email ? user.email[0] : "U"}

@@ -16,6 +16,8 @@ export default function SignUp() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -52,6 +54,11 @@ export default function SignUp() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (isGoogleLoading) return;
+    
+    setIsGoogleLoading(true);
+    setError("");
+
     try {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
@@ -68,7 +75,17 @@ export default function SignUp() {
 
       router.push("/customer/dashboard");
     } catch (err: any) {
+      // Ignore errors when user closes popup or double-clicks
+      if (
+        err?.code === 'auth/cancelled-popup-request' || 
+        err?.code === 'auth/popup-closed-by-user'
+      ) {
+        return;
+      }
+      
       setError("Failed to sign in with Google.");
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 

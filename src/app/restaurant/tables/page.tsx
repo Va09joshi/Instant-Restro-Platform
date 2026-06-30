@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_AREAS = ["Main Hall", "A/C", "Non A/C", "Bar", "Outdoor"];
+const TABLE_COLORS = ["bg-white", "bg-slate-100", "bg-slate-800", "bg-emerald-100", "bg-emerald-500", "bg-amber-400", "bg-blue-100", "bg-rose-100", "bg-purple-100"];
 
 export default function RestaurantTablesPage() {
   const { user } = useAuth();
@@ -71,6 +72,7 @@ export default function RestaurantTablesPage() {
       area: selectedArea,
       positionX: 50,
       positionY: 50,
+      color: "bg-white",
     };
     setTables([...tables, newTable]);
     setActiveTableId(newId);
@@ -243,15 +245,17 @@ export default function RestaurantTablesPage() {
                             className={cn(
                                 "absolute cursor-grab active:cursor-grabbing flex flex-col items-center justify-center transition-shadow duration-200 z-10 touch-none select-none",
                                 isCircle ? "w-[80px] h-[80px] rounded-full" : "w-[100px] h-[80px] rounded-2xl",
+                                table.color || "bg-white",
+                                (table.color === "bg-slate-800" || table.color === "bg-emerald-500") ? "text-white" : "text-slate-800",
                                 isSelected || isDragging
-                                    ? "bg-emerald-50 border-2 border-emerald-500 shadow-lg shadow-emerald-500/20 z-20 scale-105" 
-                                    : "bg-white border border-slate-300 shadow-md hover:border-emerald-300 hover:shadow-lg"
+                                    ? "border-2 border-emerald-500 shadow-lg shadow-emerald-500/20 z-20 scale-105" 
+                                    : "border border-slate-300 shadow-md hover:border-emerald-300 hover:shadow-lg"
                             )}
                         >
-                            <span className="font-bold text-slate-800 tracking-tight text-lg">
+                            <span className="font-bold tracking-tight text-lg inherit">
                             {table.tableNumber}
                             </span>
-                            <div className="flex items-center gap-1 mt-1 text-xs font-semibold text-slate-500">
+                            <div className="flex items-center gap-1 mt-1 text-xs font-semibold inherit opacity-80">
                                 <Users className="w-3.5 h-3.5" /> {table.capacity}
                             </div>
                             
@@ -365,6 +369,23 @@ export default function RestaurantTablesPage() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label className="text-slate-600 font-bold text-sm">Table Color</Label>
+                <div className="flex flex-wrap gap-2 pt-1">
+                    {TABLE_COLORS.map(color => (
+                        <button
+                            key={color}
+                            onClick={() => handleUpdateTable(activeTable.id, { color })}
+                            className={cn(
+                                "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 shadow-sm",
+                                color,
+                                (activeTable.color || "bg-white") === color ? "border-emerald-500 scale-110 shadow-emerald-500/30" : "border-slate-200/60"
+                            )}
+                        />
+                    ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="space-y-2">
                   <Label className="text-slate-600 font-bold text-sm">Capacity</Label>
@@ -382,7 +403,13 @@ export default function RestaurantTablesPage() {
                     <input 
                       type="checkbox" 
                       checked={activeTable.isVip}
-                      onChange={(e) => handleUpdateTable(activeTable.id, { isVip: e.target.checked })}
+                      onChange={(e) => {
+                        const isVip = e.target.checked;
+                        handleUpdateTable(activeTable.id, { 
+                          isVip, 
+                          color: isVip ? "bg-amber-400" : "bg-white" 
+                        });
+                      }}
                       className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 border-slate-300"
                     />
                     <span className="font-bold text-sm text-slate-700">VIP Table</span>
