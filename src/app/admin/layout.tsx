@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 relative text-slate-900">
+    <div className="flex min-h-screen bg-slate-50 relative text-slate-900 w-full overflow-x-hidden">
       {/* Sidebar for Admin */}
       <aside className="hidden md:flex w-64 bg-[#0A1616] text-white p-6 border-r border-neutral-800 flex-col fixed inset-y-0 left-0 z-50">
         <div className="mb-10 px-2">
@@ -83,21 +83,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 pb-24 md:p-8 md:pb-8 md:ml-64 flex flex-col min-w-0 bg-slate-50/50">
+      <main className="flex-1 p-4 pb-24 md:p-8 md:pb-8 md:ml-64 flex flex-col min-w-0 bg-slate-50/50 overflow-x-hidden">
         {/* Mobile Header */}
         <header className="md:hidden mb-6 bg-[#0A1616] border-b border-white/10 flex items-center justify-between p-4 rounded-2xl shadow-xl shadow-black/20">
           <div className="flex items-center font-[family-name:var(--font-yesteryear)] text-2xl border-b-[1px] border-white/20 pb-0.5">
             <span className="text-emerald-500">I</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500">nstant</span>
           </div>
-          <span className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Admin</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Admin</span>
+            <button 
+              onClick={handleLogout}
+              className="p-2 bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </header>
 
         {children}
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around items-center p-3 z-50 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      <nav className="md:hidden fixed bottom-4 left-4 right-4 bg-white/80 backdrop-blur-2xl border border-white/50 flex justify-around items-center p-2.5 z-50 rounded-2xl shadow-2xl shadow-slate-200/50">
         {navLinks.map((link) => {
           const isActive = pathname === link.href;
           const Icon = link.icon;

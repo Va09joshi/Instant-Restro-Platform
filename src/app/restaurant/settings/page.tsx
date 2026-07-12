@@ -217,31 +217,31 @@ export default function SettingsPage() {
             {DAYS.map(day => {
               const dayData = settings.operatingHours?.[day] || { isOpen: true, open: "11:00", close: "22:00" };
               return (
-                <div key={day} className={`flex items-center justify-between bg-white p-3 rounded-xl border transition-colors ${dayData.isOpen ? 'border-slate-200 shadow-sm' : 'border-slate-100 opacity-60'}`}>
-                  <div className="flex items-center gap-4 w-1/3">
+                <div key={day} className={`flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-2xl border transition-colors gap-3 sm:gap-0 ${dayData.isOpen ? 'border-slate-200 shadow-sm' : 'border-slate-100 opacity-60'}`}>
+                  <div className="flex items-center gap-4 sm:w-1/3">
                     <input 
                       type="checkbox" 
                       checked={dayData.isOpen} 
                       onChange={e => updateHour(day, 'isOpen', e.target.checked)}
-                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300" 
+                      className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300" 
                     />
                     <span className="font-bold text-slate-700">{day}</span>
                   </div>
-                  <div className="flex items-center gap-3 flex-1">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1">
                     <Input 
                       type="time" 
                       value={dayData.open} 
                       onChange={e => updateHour(day, 'open', e.target.value)}
                       disabled={!dayData.isOpen}
-                      className="h-9 bg-slate-50 border-slate-200 w-32" 
+                      className="h-10 bg-slate-50 border-slate-200 w-full sm:w-32 rounded-xl" 
                     />
-                    <span className="text-slate-400 font-medium">to</span>
+                    <span className="text-slate-400 font-medium text-sm">to</span>
                     <Input 
                       type="time" 
                       value={dayData.close} 
                       onChange={e => updateHour(day, 'close', e.target.value)}
                       disabled={!dayData.isOpen}
-                      className="h-9 bg-slate-50 border-slate-200 w-32" 
+                      className="h-10 bg-slate-50 border-slate-200 w-full sm:w-32 rounded-xl" 
                     />
                   </div>
                 </div>

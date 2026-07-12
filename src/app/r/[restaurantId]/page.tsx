@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, query, where, getDocs, setDoc } from "firebase/firestore";
 import { RestaurantSettings, MenuCategory, MenuItem, Table, Booking } from "@/types/firestore";
@@ -15,6 +15,8 @@ export default function CustomerLandingPage() {
   const params = useParams();
   const router = useRouter();
   const restaurantId = params.restaurantId as string;
+  const searchParams = useSearchParams();
+  const existingBookingId = searchParams.get('bookingId');
 
   // Data States
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
@@ -221,6 +223,30 @@ export default function CustomerLandingPage() {
     }
   };
 
+  const handleAddToExistingBooking = async () => {
+    if (!existingBookingId || Object.keys(preOrders).length === 0) return;
+    setSubmitting(true);
+    try {
+      const preOrdersList = Object.entries(preOrders).map(([itemId, quantity]) => {
+        const item = items.find(i => i.id === itemId)!;
+        return {
+          menuItemId: itemId,
+          name: item.name,
+          quantity,
+          price: item.price
+        };
+      });
+      await setDoc(doc(db, "bookings", existingBookingId), { preOrders: preOrdersList }, { merge: true });
+      setSuccess(true);
+      setTimeout(() => {
+        router.push('/customer/dashboard');
+      }, 2000);
+    } catch (e) {
+      console.error(e);
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 font-sans">
@@ -294,13 +320,14 @@ export default function CustomerLandingPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-emerald-50 flex flex-col items-center justify-center p-4 text-center">
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-24 h-24 bg-emerald-500 text-white rounded-full flex items-center justify-center mb-6">
-          <CalendarCheck className="w-12 h-12" />
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-white p-6">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center max-w-sm">
+          <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/20">
+            <CalendarCheck className="w-10 h-10 text-white" />
+          </div>
+          <h2 className="text-3xl font-black mb-2 tracking-tight">Success!</h2>
+          <p className="text-slate-400 font-medium leading-relaxed">{existingBookingId ? "Items added to your booking." : "Your table and pre-orders have been successfully reserved."}</p>
         </motion.div>
-        <h1 className="text-3xl font-bold text-emerald-900 mb-2">Booking Confirmed!</h1>
-        <p className="text-emerald-700 max-w-md">Your table and pre-orders have been successfully reserved.</p>
-        <p className="text-emerald-600/70 text-sm mt-4">Redirecting to your dashboard...</p>
       </div>
     );
   }
@@ -308,79 +335,88 @@ export default function CustomerLandingPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans relative flex flex-col">
       {/* Background Decorative Glow */}
-      <div className="absolute top-0 right-0 w-full h-[500px] bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.1),transparent_50%)] pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-full h-[600px] bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.15),transparent_50%)] pointer-events-none"></div>
+      <div className="absolute top-0 left-0 w-full h-[600px] bg-[radial-gradient(ellipse_at_top_left,rgba(15,23,42,0.05),transparent_50%)] pointer-events-none"></div>
 
       {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
           <button
             onClick={() => {
               if (user) router.push('/customer/dashboard');
               else router.back();
             }}
-            className="flex items-center justify-center w-10 h-10 bg-white border border-slate-200 shadow-sm rounded-full hover:bg-slate-50 transition-colors"
+            className="flex items-center justify-center w-10 h-10 bg-white border border-slate-200 shadow-sm rounded-full hover:bg-slate-50 hover:scale-105 transition-all"
           >
             <ArrowLeft className="w-5 h-5 text-slate-600" />
           </button>
 
-          <h1 className="font-bold text-lg text-slate-900 tracking-tight">{settings.name}</h1>
+          <h1 className="font-black text-xl text-slate-900 tracking-tight">{settings.name}</h1>
           <div className="w-10 h-10"></div> {/* Spacer for centering */}
         </div>
       </div>
 
-      <div className="flex-1 max-w-7xl mx-auto w-full flex flex-col lg:flex-row items-start gap-8 p-6 lg:p-8 relative z-10">
+      <div className="flex-1 max-w-7xl mx-auto w-full flex flex-col lg:flex-row items-start gap-8 p-4 md:p-8 relative z-10">
 
         {/* LEFT COLUMN: THE DIGITAL MENU */}
-        <div className="w-full lg:flex-1">
-          {/* Header Banner */}
-          <div className="relative pt-10 pb-8 bg-white flex flex-col items-center px-6 text-center border border-slate-200 rounded-[2rem] mb-10 shadow-sm">
-            {settings.logoUrl && !logoError ? (
-              <div className="w-20 h-20 bg-white p-1 rounded-full shadow-lg mb-4 flex items-center justify-center overflow-hidden ring-4 ring-slate-100">
-                <img
-                  src={settings.logoUrl}
-                  alt="Logo"
-                  className="w-full h-full object-cover rounded-full"
-                  onError={() => setLogoError(true)}
-                />
+        <div className="w-full lg:flex-1 flex flex-col gap-8">
+          
+          {/* Hero Banner (Full width) */}
+          <div 
+            className="w-full h-[400px] bg-slate-900 relative rounded-b-3xl md:rounded-3xl shadow-xl overflow-hidden mb-8"
+            style={settings?.logoUrl ? { backgroundImage: `url(${settings.logoUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+            
+            <div className="absolute bottom-0 left-0 w-full p-8 text-left flex flex-col md:flex-row items-end justify-between gap-6">
+              <div className="text-white z-10 w-full">
+                <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 border border-emerald-500/30 backdrop-blur-sm">
+                  <Star className="w-3.5 h-3.5 fill-emerald-400" /> Premium Partner
+                </div>
+                <h1 className="text-4xl md:text-5xl font-black mb-3 tracking-tight">{settings?.name}</h1>
+                
+                {settings?.description && (
+                  <p className="text-lg md:text-xl text-white/80 mb-6 max-w-2xl leading-relaxed font-medium">
+                    {settings.description}
+                  </p>
+                )}
+                
+                <div className="flex flex-wrap items-center gap-4 text-sm font-medium">
+                  {settings?.address && (
+                    <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10">
+                      <MapPin className="w-4 h-4 text-emerald-400"/> {settings.address}
+                    </div>
+                  )}
+                  {settings?.phone && (
+                    <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10">
+                      <Phone className="w-4 h-4 text-emerald-400"/> {settings.phone}
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-3xl font-black text-white shadow-lg mb-4 ring-4 ring-emerald-50">
-                {settings.name.charAt(0)}
-              </div>
-            )}
-
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">{settings.name}</h2>
-            <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mt-3 mb-4 border border-emerald-100">
-              <Star className="w-3.5 h-3.5 fill-emerald-500" /> Digital Menu
-            </div>
-            {settings.description && <p className="text-slate-500 text-sm max-w-md leading-relaxed">{settings.description}</p>}
-
-            <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-slate-600 mt-6 pt-6 border-t border-slate-100 w-full">
-              {settings.address && <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200"><MapPin className="w-4 h-4 text-emerald-600" /><span>{settings.address}</span></div>}
-              {settings.phone && <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200"><Phone className="w-4 h-4 text-emerald-600" /><span>{settings.phone}</span></div>}
             </div>
           </div>
 
-          {/* Categories */}
-          <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar snap-x mb-8 sticky top-[73px] z-30 bg-slate-50/90 backdrop-blur-xl py-4 -mx-6 px-6 lg:mx-0 lg:px-0">
+          {/* Categories Nav */}
+          <div className="flex overflow-x-auto gap-2 pb-4 no-scrollbar snap-x sticky top-[80px] z-30 bg-slate-50/90 backdrop-blur-xl py-4 -mx-4 px-4 md:mx-0 md:px-0 rounded-b-3xl">
             <button
               onClick={() => setActiveCategoryId("all")}
-              className={`snap-start whitespace-nowrap px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-sm
+              className={`snap-start whitespace-nowrap px-6 py-3 rounded-2xl text-sm font-bold transition-all
                 ${activeCategoryId === "all"
-                  ? 'bg-[#009b65] text-white border-transparent'
-                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-900'}
+                  ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20 border-transparent'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 hover:text-slate-900 shadow-sm'}
               `}
             >
-              All
+              All Items
             </button>
             {categories.filter(cat => items.some(i => i.categoryId === cat.id)).map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategoryId(cat.id)}
-                className={`snap-start whitespace-nowrap px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-sm
+                className={`snap-start whitespace-nowrap px-6 py-3 rounded-2xl text-sm font-bold transition-all
                   ${activeCategoryId === cat.id
-                    ? 'bg-[#009b65] text-white border-transparent'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-900'}
+                    ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20 border-transparent'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 hover:text-slate-900 shadow-sm'}
                 `}
               >
                 {cat.name}
@@ -388,8 +424,8 @@ export default function CustomerLandingPage() {
             ))}
           </div>
 
-          {/* Menu Items */}
-          <div className="space-y-12 mt-2">
+          {/* Menu Items Content */}
+          <div className="space-y-12">
             {categories
               .filter(cat => items.some(i => i.categoryId === cat.id))
               .filter(cat => activeCategoryId === "all" || activeCategoryId === cat.id)
@@ -397,51 +433,52 @@ export default function CustomerLandingPage() {
               const catItems = items.filter(i => i.categoryId === cat.id);
               if (catItems.length === 0) return null;
               return (
-                <div key={cat.id} id={`category-${cat.id}`} className="scroll-mt-32">
-                  <h2 className="text-2xl font-black text-[#0a192f] mb-6 flex items-center gap-3">
-                    <span className="w-1.5 h-8 rounded-full bg-[#009b65]"></span>
+                <div key={cat.id} id={`category-${cat.id}`} className="scroll-mt-40">
+                  <h2 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
+                    <span className="w-1.5 h-6 rounded-full bg-emerald-500"></span>
                     {cat.name}
                   </h2>
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
                     {catItems.map(item => {
                       const qty = preOrders[item.id] || 0;
                       return (
                         <div
                           key={item.id}
-                          className={`bg-white rounded-[24px] p-4 shadow-sm border border-slate-200 flex gap-4 transition-all ${!item.isAvailable ? 'opacity-50 grayscale' : ''}`}
+                          className={`bg-white rounded-[1.5rem] p-3 md:p-4 shadow-sm border border-slate-200 flex gap-4 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300 ${!item.isAvailable ? 'opacity-60 grayscale' : ''}`}
                         >
                           {item.image ? (
-                            <div className="w-[120px] h-[120px] shrink-0 rounded-[20px] overflow-hidden bg-slate-100 border border-slate-100">
-                              <img src={item.image} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.style.display = 'none'; }} />
+                            <div className="w-[100px] h-[100px] md:w-[130px] md:h-[130px] shrink-0 rounded-[1rem] overflow-hidden bg-slate-100 relative group">
+                              <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.style.display = 'none'; }} />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </div>
                           ) : (
-                             <div className="w-[120px] h-[120px] shrink-0 rounded-[20px] overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center">
-                                <span className="text-slate-300 text-xs font-bold">No Image</span>
+                             <div className="w-[100px] h-[100px] md:w-[130px] md:h-[130px] shrink-0 rounded-[1rem] bg-slate-50 border border-slate-100 flex items-center justify-center">
+                                <span className="text-slate-300 text-[10px] font-bold uppercase tracking-widest">No Image</span>
                              </div>
                           )}
-                          <div className="flex-1 min-w-0 flex flex-col justify-between py-1 pr-1">
+                          <div className="flex-1 min-w-0 flex flex-col justify-between py-1 pr-2">
                             <div>
                               <div className="flex justify-between items-start gap-2 mb-1">
-                                <h3 className="font-bold text-[17px] text-[#0a192f] leading-tight pr-2">{item.name}</h3>
-                                <span className="font-bold text-[#009b65] bg-[#e6f7ef] px-3 py-1 rounded-[10px] text-[15px] shrink-0">${item.price}</span>
+                                <h3 className="font-bold text-base md:text-lg text-slate-900 leading-tight pr-2">{item.name}</h3>
+                                <span className="font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg text-sm shrink-0 border border-emerald-100/50 shadow-sm">${item.price}</span>
                               </div>
-                              {item.description && <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">{item.description}</p>}
+                              {item.description && <p className="text-xs md:text-sm text-slate-500 line-clamp-2 leading-relaxed mt-1.5">{item.description}</p>}
                             </div>
 
                             <div className="mt-3 flex items-center justify-end">
                               {!item.isAvailable ? (
-                                <span className="text-[11px] font-bold px-3 py-1.5 bg-slate-100 text-slate-500 border border-slate-200 rounded-full uppercase tracking-wider">Sold Out</span>
+                                <span className="text-[10px] font-black px-3 py-1.5 bg-slate-100 text-slate-400 rounded-lg uppercase tracking-widest">Sold Out</span>
                               ) : (
                                 <div className="flex items-center">
                                   {qty > 0 ? (
-                                    <div className="flex items-center bg-white border border-slate-200 rounded-full shadow-sm overflow-hidden h-9">
-                                      <button onClick={() => updatePreOrder(item.id, -1)} className="w-9 h-full flex items-center justify-center text-[#009b65] hover:bg-[#e6f7ef] transition-colors"><Minus className="w-4 h-4" /></button>
-                                      <span className="w-8 text-center text-sm font-bold text-[#0a192f]">{qty}</span>
-                                      <button onClick={() => updatePreOrder(item.id, 1)} className="w-9 h-full flex items-center justify-center text-[#009b65] hover:bg-[#e6f7ef] transition-colors"><Plus className="w-4 h-4" /></button>
+                                    <div className="flex items-center bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm overflow-hidden h-10">
+                                      <button onClick={() => updatePreOrder(item.id, -1)} className="w-10 h-full flex items-center justify-center text-emerald-600 hover:bg-emerald-100 transition-colors active:scale-95"><Minus className="w-4 h-4" /></button>
+                                      <span className="w-8 text-center text-sm font-black text-emerald-900">{qty}</span>
+                                      <button onClick={() => updatePreOrder(item.id, 1)} className="w-10 h-full flex items-center justify-center text-emerald-600 hover:bg-emerald-100 transition-colors active:scale-95"><Plus className="w-4 h-4" /></button>
                                     </div>
                                   ) : (
-                                    <button onClick={() => updatePreOrder(item.id, 1)} className="px-5 py-2.5 text-[13px] font-bold text-[#009b65] bg-white border border-slate-200 shadow-sm hover:border-[#009b65] hover:bg-[#e6f7ef] rounded-full transition-all">
-                                      Add Pre-order
+                                    <button onClick={() => updatePreOrder(item.id, 1)} className="px-5 py-2 text-xs md:text-sm font-bold text-emerald-700 bg-white border-2 border-emerald-100 shadow-sm hover:border-emerald-500 hover:bg-emerald-50 rounded-xl transition-all active:scale-95">
+                                      Add to Cart
                                     </button>
                                   )}
                                 </div>
@@ -459,41 +496,44 @@ export default function CustomerLandingPage() {
         </div>
 
         {/* RIGHT COLUMN: BOOKING & PRE-ORDER PANEL */}
-        <div className="w-full lg:w-[420px] shrink-0 sticky top-[100px]">
+        <div className="w-full lg:w-[400px] shrink-0 sticky top-[100px]">
           <div className="flex flex-col h-[calc(100vh-140px)] overflow-y-auto no-scrollbar space-y-6 pb-6">
             
-            {/* Table booking has been moved to a separate page */}
-
             {/* Pre-order Cart Card */}
-            <div className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 flex flex-col shrink-0">
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/50 flex flex-col shrink-0 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+              
               <h2 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-emerald-500" />
+                  <Star className="w-5 h-5 text-emerald-500 fill-emerald-500/20" />
                   Pre-order Cart
                 </div>
                 {Object.keys(preOrders).length > 0 && (
-                  <span className="bg-emerald-50 border border-emerald-100 text-emerald-600 py-0.5 px-2 rounded-full text-[12px]">
+                  <span className="bg-slate-900 text-white py-1 px-3 rounded-full text-xs font-bold shadow-md">
                     {Object.values(preOrders).reduce((a, b) => a + b, 0)} Items
                   </span>
                 )}
               </h2>
 
               {Object.keys(preOrders).length === 0 ? (
-                <div className="border border-dashed border-slate-300 rounded-2xl flex items-center justify-center p-6 text-center bg-slate-50">
-                  <p className="text-sm text-slate-500 font-medium leading-relaxed">No dishes pre-ordered.<br />Add items from the menu.</p>
+                <div className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center bg-slate-50/50">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 mb-4">
+                    <Star className="w-6 h-6 text-slate-300" />
+                  </div>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed">Your cart is empty.<br />Add some delicious items from the menu.</p>
                 </div>
               ) : (
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-inner">
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4 shadow-inner overflow-hidden relative">
                   {Object.entries(preOrders).map(([itemId, quantity]) => {
                     const item = items.find(i => i.id === itemId);
                     if (!item) return null;
                     return (
-                      <div key={itemId} className="flex justify-between items-start text-sm">
+                      <div key={itemId} className="flex justify-between items-start text-sm group">
                         <div className="flex gap-3">
-                          <span className="font-bold text-emerald-700 bg-emerald-100 px-2 rounded border border-emerald-200">{quantity}x</span>
-                          <span className="text-slate-700 font-semibold">{item.name}</span>
+                          <span className="font-black text-emerald-600 bg-emerald-100/50 px-2 rounded-lg border border-emerald-200/50 shrink-0">{quantity}x</span>
+                          <span className="text-slate-800 font-bold leading-tight pt-0.5 group-hover:text-emerald-700 transition-colors">{item.name}</span>
                         </div>
-                        <span className="font-bold text-slate-900">${item.price * quantity}</span>
+                        <span className="font-black text-slate-900 shrink-0 pt-0.5">${item.price * quantity}</span>
                       </div>
                     )
                   })}
@@ -502,26 +542,37 @@ export default function CustomerLandingPage() {
             </div>
 
             {/* Total & Submit Footer */}
-            <div className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 shrink-0">
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/50 shrink-0 relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full blur-3xl -z-10"></div>
+              
               {Object.keys(preOrders).length > 0 && (
-                <div className="flex justify-between items-end mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm">
-                  <span className="text-sm font-bold text-slate-500">Estimated Total</span>
-                  <span className="text-2xl font-black text-emerald-600">${calculateSubtotal()}</span>
+                <div className="flex justify-between items-end mb-6 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
+                  <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/20 rounded-full blur-xl"></div>
+                  <span className="text-sm font-bold text-slate-300 tracking-wider uppercase">Estimated Total</span>
+                  <span className="text-3xl font-black text-emerald-400 relative z-10">${calculateSubtotal()}</span>
                 </div>
               )}
 
               <button
                 onClick={() => {
                   if (Object.keys(preOrders).length > 0) {
-                    localStorage.setItem(`restro_cart_${restaurantId}`, JSON.stringify(preOrders));
+                    if (existingBookingId) {
+                      handleAddToExistingBooking();
+                    } else {
+                      localStorage.setItem(`restro_cart_${restaurantId}`, JSON.stringify(preOrders));
+                      router.push(`/r/${restaurantId}/book`);
+                    }
+                  } else {
+                    if (!existingBookingId) router.push(`/r/${restaurantId}/book`);
                   }
-                  router.push(`/r/${restaurantId}/book`);
                 }}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-4 font-bold transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20"
+                disabled={submitting || (Object.keys(preOrders).length === 0 && !!existingBookingId)}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl py-4 font-black text-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/40 hover:-translate-y-0.5 active:scale-95 disabled:bg-slate-300 disabled:shadow-none disabled:translate-y-0"
               >
-                Proceed to Book Table
-                <CalendarCheck className="w-5 h-5" />
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : existingBookingId ? "Add to Booking" : "Proceed to Book"}
+                {!submitting && <CalendarCheck className="w-5 h-5 ml-1" />}
               </button>
+              <p className="text-center text-xs font-bold text-slate-400 mt-4 uppercase tracking-widest">Secure Reservation</p>
             </div>
             
           </div>

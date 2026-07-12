@@ -6,6 +6,13 @@ export interface UserDocument {
   name: string;
   phone?: string;
   role: UserRole;
+  favorites?: string[]; // Array of restaurant IDs
+  preferences?: {
+    emailNotifications?: boolean;
+    smsAlerts?: boolean;
+    shareProfile?: boolean;
+    darkMode?: boolean;
+  };
   createdAt: string;
 }
 

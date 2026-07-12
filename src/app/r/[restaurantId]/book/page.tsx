@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BookTablePage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const params = useParams();
   const router = useRouter();
   const restaurantId = params.restaurantId as string;
@@ -34,10 +34,13 @@ export default function BookTablePage() {
   const date = new Date().toISOString().split('T')[0]; // Today
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      router.push(`/login?redirect=/r/${restaurantId}/book`);
+    }
     if (user?.displayName && !guestName) {
       setGuestName(user.displayName);
     }
-  }, [user]);
+  }, [user, authLoading, router, restaurantId, guestName]);
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -127,7 +130,7 @@ export default function BookTablePage() {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading || (!authLoading && !user)) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
         {/* Left Form Skeleton */}
@@ -154,7 +157,7 @@ export default function BookTablePage() {
         
         {/* Right Floor Plan Skeleton */}
         <div className="flex-1 bg-slate-100/50 p-8 flex flex-col">
-          <div className="bg-white rounded-[2rem] border border-slate-200 flex-1 p-8 shadow-sm flex items-center justify-center">
+          <div className="bg-white rounded-2xl border border-slate-200 flex-1 p-8 shadow-sm flex items-center justify-center">
             <Skeleton className="w-full max-w-2xl h-[500px] rounded-3xl" />
           </div>
         </div>
@@ -288,13 +291,14 @@ export default function BookTablePage() {
               ))}
           </div>
 
-          <div className="w-full h-[450px] relative bg-[#f1f5f9] overflow-hidden"
-               style={{
-                   backgroundImage: "radial-gradient(#cbd5e1 1px, transparent 0)",
-                   backgroundSize: "32px 32px"
-               }}
-          >
-            {tablesInArea.map(table => {
+          <div className="w-full overflow-x-auto overflow-y-hidden border-b border-slate-100">
+            <div className="w-[800px] md:w-full h-[450px] relative bg-[#f1f5f9] overflow-hidden shrink-0"
+                 style={{
+                     backgroundImage: "radial-gradient(#cbd5e1 1px, transparent 0)",
+                     backgroundSize: "32px 32px"
+                 }}
+            >
+              {tablesInArea.map(table => {
               const isBooked = bookedTableIds.has(table.id);
               const isSelected = selectedTableId === table.id;
               
@@ -352,6 +356,7 @@ export default function BookTablePage() {
                     <p className="text-lg font-medium text-slate-500">No tables in this area</p>
                 </div>
             )}
+          </div>
           </div>
 
           <div className="flex gap-4 text-xs font-bold text-slate-500 justify-center p-4 border-t border-slate-100 bg-slate-50/50">

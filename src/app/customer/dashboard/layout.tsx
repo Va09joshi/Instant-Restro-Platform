@@ -7,6 +7,7 @@ import Link from "next/link";
 import { LogOut, User as UserIcon, LayoutDashboard, Settings, CalendarCheck, History, Heart } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
+import { CustomerMobileNav } from "@/components/ui/CustomerMobileNav";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, role, loading } = useAuth();
@@ -39,7 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) return null;
 
   return (
-    <div className="flex min-h-screen bg-slate-50 relative text-slate-900">
+    <div className="flex min-h-screen bg-slate-50 relative text-slate-900 w-full overflow-x-hidden">
       {/* Sidebar for Customer */}
       <aside className="hidden md:flex w-64 bg-[#0A1616] text-white p-6 border-r border-neutral-800 flex-col fixed inset-y-0 left-0 z-50">
         <div className="mb-10 px-2">
@@ -111,7 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 md:ml-64 flex flex-col min-w-0 bg-slate-50/50">
+      <main className="flex-1 w-full min-w-0 p-4 md:p-8 md:ml-64 bg-slate-50/50 pb-24 md:pb-8 overflow-x-hidden">
         {/* Mobile Header */}
         <header className="md:hidden mb-6 bg-[#0A1616] border-b border-white/10 flex items-center justify-between p-4 rounded-2xl shadow-xl shadow-black/20">
           <div className="flex items-center font-[family-name:var(--font-yesteryear)] text-2xl border-b-[1px] border-white/20 pb-0.5">
@@ -125,6 +126,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {children}
       </main>
+      
+      <CustomerMobileNav />
     </div>
   );
 }

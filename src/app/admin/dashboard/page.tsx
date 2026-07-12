@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { Users, Store, Calendar, TrendingUp, Globe } from "lucide-react";
+import { Users, Store, Calendar, TrendingUp, Activity, UserPlus, Clock } from "lucide-react";
 import { motion } from "framer-motion";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -12,6 +13,8 @@ export default function AdminDashboardPage() {
     restaurants: 0,
     bookings: 0
   });
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,6 +29,43 @@ export default function AdminDashboardPage() {
           restaurants: restaurantsSnap.size,
           bookings: bookingsSnap.size
         });
+
+        // Process Bookings Chart Data (Last 7 Days)
+        const daysMap: Record<string, number> = {};
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          daysMap[d.toISOString().split('T')[0]] = 0;
+        }
+
+        bookingsSnap.forEach(doc => {
+          const b = doc.data();
+          const dateStr = b.date; // YYYY-MM-DD
+          if (daysMap[dateStr] !== undefined) {
+            daysMap[dateStr]++;
+          }
+        });
+
+        const formattedChartData = Object.keys(daysMap).map(date => {
+          const dateObj = new Date(date);
+          const shortDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          return { name: shortDate, bookings: daysMap[date] };
+        });
+        setChartData(formattedChartData);
+
+        // Process Recent Users
+        const usersList: any[] = [];
+        usersSnap.forEach(doc => {
+          usersList.push({ id: doc.id, ...doc.data() });
+        });
+        // Sort by createdAt descending (assuming ISO strings or timestamps)
+        usersList.sort((a, b) => {
+          if (!a.createdAt) return 1;
+          if (!b.createdAt) return -1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        setRecentUsers(usersList.slice(0, 5));
+
       } catch (error) {
         console.error("Error fetching stats:", error);
       } finally {
@@ -69,7 +109,7 @@ export default function AdminDashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-white p-8 rounded-[2rem] shadow-xl shadow-black/5 border border-slate-100 flex flex-col items-center justify-center text-center relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300"
+            className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300"
           >
             <div className={`absolute -right-8 -top-8 w-32 h-32 ${stat.bg} rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity`}></div>
             <div className={`w-16 h-16 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-inner`}>
@@ -83,80 +123,87 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      {/* Bottom Section: Regional Data & System Health */}
+      {/* Bottom Section: Charts & Recent Users */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Regional Distribution */}
+        {/* Bookings Chart */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="lg:col-span-2 bg-white rounded-[2rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col"
+          className="lg:col-span-2 bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 flex flex-col"
         >
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                <Globe className="text-[#20c997] w-6 h-6" /> Regional Distribution
+                <Activity className="text-emerald-500 w-6 h-6" /> Bookings Over Time
               </h2>
-              <p className="text-sm text-slate-500 mt-1">Active users and restaurants by region</p>
+              <p className="text-sm text-slate-500 mt-1">Platform-wide reservations for the last 7 days</p>
             </div>
             <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500">
-              Last 30 Days
+              Last 7 Days
             </div>
           </div>
 
-          <div className="space-y-6 flex-1">
-            {[
-              { region: "North America", count: "14,230", percentage: 75, color: "bg-[#20c997]" },
-              { region: "Europe", count: "4,591", percentage: 45, color: "bg-blue-500" },
-              { region: "Asia Pacific", count: "2,840", percentage: 30, color: "bg-amber-500" },
-              { region: "Middle East", count: "852", percentage: 15, color: "bg-indigo-500" }
-            ].map((item, idx) => (
-              <div key={idx}>
-                <div className="flex justify-between text-sm font-bold mb-2">
-                  <span className="text-slate-700">{item.region}</span>
-                  <span className="text-slate-900">{item.count} users</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200/50">
-                  <div 
-                    className={`${item.color} h-full rounded-full relative overflow-hidden`} 
-                    style={{ width: `${item.percentage}%` }}
-                  >
-                    {/* Shimmer effect inside progress bar */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="flex-1 w-full h-[300px] min-h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                  cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }}
+                />
+                <Area type="monotone" dataKey="bookings" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorBookings)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </motion.div>
 
-        {/* System Health */}
+        {/* Recent Users */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden flex flex-col justify-between shadow-xl shadow-slate-200/50"
+          className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm flex flex-col"
         >
-          <div className="absolute -right-20 -top-20 w-64 h-64 bg-[#20c997]/20 rounded-full blur-3xl"></div>
-          
-          <div className="relative z-10 mb-8">
-            <h2 className="text-xl font-black mb-2 flex items-center gap-3">
-              <TrendingUp className="text-[#20c997] w-6 h-6" /> System Health
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+              <UserPlus className="text-blue-500 w-6 h-6" /> Recent Users
             </h2>
-            <p className="text-sm text-slate-400">All primary services are operational.</p>
           </div>
-          
-          <div className="relative z-10 space-y-4">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/10">
-              <p className="text-[11px] font-bold text-slate-300 uppercase tracking-widest mb-1">Uptime</p>
-              <p className="text-2xl font-black text-[#20c997]">99.99%</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/10">
-              <p className="text-[11px] font-bold text-slate-300 uppercase tracking-widest mb-1">API Latency</p>
-              <p className="text-2xl font-black text-white">42ms</p>
-            </div>
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4 no-scrollbar">
+            {recentUsers.map((u) => (
+              <div key={u.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold shrink-0">
+                  {u.name ? u.name.charAt(0).toUpperCase() : "?"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-slate-900 truncate">{u.name || "Unknown User"}</p>
+                  <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                </div>
+                <div className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-slate-100 text-slate-600 shrink-0">
+                  {u.role}
+                </div>
+              </div>
+            ))}
+            {recentUsers.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 min-h-[150px]">
+                <Users className="w-8 h-8 opacity-20" />
+                <span className="text-sm">No recent users</span>
+              </div>
+            )}
           </div>
+          <button className="w-full mt-4 py-3 bg-slate-50 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors flex justify-center items-center gap-2">
+            View All Users
+          </button>
         </motion.div>
       </div>
     </div>

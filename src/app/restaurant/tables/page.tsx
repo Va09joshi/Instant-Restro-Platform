@@ -173,29 +173,29 @@ export default function RestaurantTablesPage() {
   const activeTable = tables.find(t => t.id === activeTableId);
 
   return (
-    <div className="fixed inset-0 md:left-64 p-4 lg:p-6 bg-[#f8fafc] flex flex-col z-40">
-      <div className="flex justify-between items-center mb-6 shrink-0 bg-white p-5 rounded-2xl shadow-sm border border-slate-200/60 backdrop-blur-md">
+    <div className="fixed inset-0 md:left-64 p-4 lg:p-6 pb-24 md:pb-6 bg-[#f8fafc] flex flex-col z-40 overflow-y-auto overflow-x-hidden md:overflow-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 md:mb-6 shrink-0 bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200/60 backdrop-blur-md">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <LayoutDashboard className="w-6 h-6 text-emerald-500" /> Floor Plan Builder
           </h1>
           <p className="text-slate-500 text-sm mt-1">Design your restaurant layout by dragging and dropping tables.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={handleAddTable} variant="outline" className="gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50 h-11 px-5 rounded-xl font-semibold">
-            <Plus className="w-4 h-4" /> Add Table
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <Button onClick={handleAddTable} variant="outline" className="flex-1 md:flex-none gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50 h-11 px-4 md:px-5 rounded-xl font-semibold">
+            <Plus className="w-4 h-4 shrink-0" /> <span className="whitespace-nowrap">Add Table</span>
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#0A1616] hover:bg-[#0A1616]/90 text-white gap-2 h-11 px-6 rounded-xl font-semibold shadow-md">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Layout
+          <Button onClick={handleSave} disabled={saving} className="flex-1 md:flex-none bg-[#0A1616] hover:bg-[#0A1616]/90 text-white gap-2 h-11 px-4 md:px-6 rounded-xl font-semibold shadow-md">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 shrink-0" />}
+            <span className="whitespace-nowrap">{saving ? "Saving..." : "Save Layout"}</span>
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-[800px] lg:min-h-0">
         
         {/* Main Floor Plan Area */}
-        <div className="flex-1 flex flex-col bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden">
+        <div className="flex-1 flex flex-col bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden min-h-[400px]">
             {/* Area Tabs */}
             <div className="flex overflow-x-auto no-scrollbar border-b border-slate-100 bg-slate-50/50 p-2 gap-2">
                 {allAreasSet.map((area) => (
@@ -217,16 +217,17 @@ export default function RestaurantTablesPage() {
                 ))}
             </div>
             
-            {/* Interactive Canvas */}
-            <div 
-                className="flex-1 relative bg-[#f1f5f9] overflow-hidden" 
-                ref={containerRef}
-                style={{
-                    backgroundImage: "radial-gradient(#cbd5e1 1px, transparent 0)",
-                    backgroundSize: "32px 32px"
-                }}
-            >
-                {tablesInArea.map(table => {
+            {/* Interactive Canvas Container */}
+            <div className="flex-1 overflow-x-auto custom-scrollbar bg-[#f1f5f9]">
+                <div 
+                    className="min-w-[800px] w-full h-full relative" 
+                    ref={containerRef}
+                    style={{
+                        backgroundImage: "radial-gradient(#cbd5e1 1px, transparent 0)",
+                        backgroundSize: "32px 32px"
+                    }}
+                >
+                    {tablesInArea.map(table => {
                     const isSelected = activeTableId === table.id;
                     const isCircle = table.shape === "circle";
                     const isDragging = draggingTable?.id === table.id;
@@ -283,11 +284,12 @@ export default function RestaurantTablesPage() {
                         <p className="text-sm">Click 'Add Table' to start designing</p>
                     </div>
                 )}
+                </div>
             </div>
         </div>
         
         {/* Right Sidebar: Settings */}
-        <div className="w-full lg:w-[360px] bg-white rounded-3xl shadow-sm border border-slate-200/60 p-6 flex flex-col overflow-y-auto shrink-0">
+        <div className="w-full lg:w-[360px] bg-white rounded-3xl shadow-sm border border-slate-200/60 p-5 md:p-6 flex flex-col shrink-0 min-h-[400px] lg:min-h-0 lg:overflow-y-auto">
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
             <h2 className="font-bold text-xl text-slate-900">Table Settings</h2>
           </div>

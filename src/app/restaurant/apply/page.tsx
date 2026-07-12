@@ -96,7 +96,7 @@ export default function PartnerApplyPage() {
 
         {/* Application Form */}
         <div id="apply" className="max-w-2xl mx-auto scroll-mt-32">
-          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-8 md:p-12 shadow-2xl relative overflow-hidden">
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl p-8 md:p-12 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] -z-10 pointer-events-none translate-x-1/3 -translate-y-1/3"></div>
 
             <div className="text-center mb-10">

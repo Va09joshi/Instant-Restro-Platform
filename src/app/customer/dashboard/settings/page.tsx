@@ -1,93 +1,160 @@
 "use client";
 
-import { Bell, Shield, Smartphone } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
+import { Bell, Shield, Smartphone, ChevronRight, Moon, MessageSquare, Mail, Lock, Eye, LogOut, Loader2 } from "lucide-react";
+import { auth, db } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import { UserDocument } from "@/types/firestore";
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  
+  const [preferences, setPreferences] = useState({
+    emailNotifications: true,
+    smsAlerts: true,
+    shareProfile: true,
+    darkMode: false,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadPreferences() {
+      if (!user) return;
+      try {
+        const docSnap = await getDoc(doc(db, "users", user.uid));
+        if (docSnap.exists()) {
+          const data = docSnap.data() as UserDocument;
+          if (data.preferences) {
+            setPreferences(prev => ({ ...prev, ...data.preferences }));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load preferences", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadPreferences();
+  }, [user]);
+
+  const handleToggle = async (key: keyof typeof preferences) => {
+    if (!user) return;
+    const newValue = !preferences[key];
+    setPreferences(prev => ({ ...prev, [key]: newValue }));
+    
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        [`preferences.${key}`]: newValue
+      });
+    } catch (error) {
+      console.error("Failed to update preference", error);
+      // Revert on failure
+      setPreferences(prev => ({ ...prev, [key]: !newValue }));
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/");
+  };
+
+  if (loading) return <div className="flex justify-center p-20"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
+
   return (
-    <div className="max-w-3xl mx-auto space-y-8 font-sans py-8">
+    <div className="max-w-2xl mx-auto space-y-6 font-sans py-8 p-4 md:p-8 bg-slate-50/50 min-h-screen pb-24 md:pb-8">
       <div>
         <h1 className="text-3xl font-black text-slate-900 mb-2">Settings</h1>
-        <p className="text-slate-500">Manage your application preferences.</p>
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-[2rem] p-8 md:p-10 shadow-xl shadow-slate-200/50">
+      <div className="space-y-6">
         
-        <div className="space-y-10">
-          {/* Section 1 */}
-          <div>
-            <div className="flex items-center gap-4 mb-5">
-              <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500">
-                <Bell className="w-6 h-6" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-900">Notifications</h2>
+        {/* Notifications Group */}
+        <div>
+            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 px-4">Notifications</h2>
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between p-4 border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                            <Mail className="w-4 h-4 text-indigo-500" />
+                        </div>
+                        <span className="font-medium text-slate-900">Email Notifications</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={preferences.emailNotifications} onChange={() => handleToggle('emailNotifications')} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                </div>
+                <div className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                            <MessageSquare className="w-4 h-4 text-emerald-500" />
+                        </div>
+                        <span className="font-medium text-slate-900">SMS Alerts</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={preferences.smsAlerts} onChange={() => handleToggle('smsAlerts')} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                </div>
             </div>
-            <div className="space-y-4 ml-16">
-              <label className="flex items-center justify-between p-5 border border-slate-100 rounded-2xl bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-colors">
-                <div>
-                  <p className="font-bold text-[15px] text-slate-900">Email Notifications</p>
-                  <p className="text-[13px] text-slate-500 mt-0.5">Receive booking confirmations via email.</p>
-                </div>
-                <div className="relative flex items-center justify-center">
-                  <input type="checkbox" defaultChecked className="w-6 h-6 accent-[#20c997] cursor-pointer" />
-                </div>
-              </label>
-              <label className="flex items-center justify-between p-5 border border-slate-100 rounded-2xl bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-colors">
-                <div>
-                  <p className="font-bold text-[15px] text-slate-900">SMS Alerts</p>
-                  <p className="text-[13px] text-slate-500 mt-0.5">Get text messages when your table is ready.</p>
-                </div>
-                <div className="relative flex items-center justify-center">
-                  <input type="checkbox" defaultChecked className="w-6 h-6 accent-[#20c997] cursor-pointer" />
-                </div>
-              </label>
-            </div>
-          </div>
+        </div>
 
-          <div className="border-t border-slate-100"></div>
-
-          {/* Section 2 */}
-          <div>
-            <div className="flex items-center gap-4 mb-5">
-              <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-[#20c997]">
-                <Shield className="w-6 h-6" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-900">Privacy</h2>
-            </div>
-            <div className="space-y-4 ml-16">
-              <label className="flex items-center justify-between p-5 border border-slate-100 rounded-2xl bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-colors">
-                <div>
-                  <p className="font-bold text-[15px] text-slate-900">Share profile with restaurants</p>
-                  <p className="text-[13px] text-slate-500 mt-0.5">Allows restaurants to see your dining preferences.</p>
+        {/* Privacy & Security */}
+        <div>
+            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 px-4">Privacy & Security</h2>
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between p-4 border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer">
+                    <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                            <Eye className="w-4 h-4 text-blue-500" />
+                        </div>
+                        <span className="font-medium text-slate-900">Share profile with restaurants</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={preferences.shareProfile} onChange={() => handleToggle('shareProfile')} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
                 </div>
-                <div className="relative flex items-center justify-center">
-                  <input type="checkbox" defaultChecked className="w-6 h-6 accent-[#20c997] cursor-pointer" />
+                <div className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => router.push('/customer/dashboard/profile')}>
+                    <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center">
+                            <Lock className="w-4 h-4 text-rose-500" />
+                        </div>
+                        <span className="font-medium text-slate-900">Change Password</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-400" />
                 </div>
-              </label>
             </div>
-          </div>
+        </div>
 
-          <div className="border-t border-slate-100"></div>
-
-          {/* Section 3 */}
-          <div>
-            <div className="flex items-center gap-4 mb-5">
-              <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500">
-                <Smartphone className="w-6 h-6" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-900">App Preferences</h2>
+        {/* Preferences */}
+        <div>
+            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 px-4">Preferences</h2>
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer">
+                    <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                            <Moon className="w-4 h-4 text-amber-500" />
+                        </div>
+                        <span className="font-medium text-slate-900">Dark Mode</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={preferences.darkMode} onChange={() => handleToggle('darkMode')} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                </div>
             </div>
-            <div className="space-y-4 ml-16">
-              <div className="p-5 border border-slate-100 rounded-2xl bg-slate-50/50">
-                <p className="font-bold text-[15px] text-slate-900 mb-3">Theme</p>
-                <select className="w-full md:w-64 p-3 rounded-xl border border-slate-200 bg-white text-sm font-medium outline-none focus:ring-2 focus:ring-[#20c997]/20 focus:border-[#20c997] transition-all cursor-pointer">
-                  <option>Light (Default)</option>
-                  <option>Dark</option>
-                  <option>System</option>
-                </select>
-              </div>
-            </div>
-          </div>
+        </div>
 
+        {/* Account Actions */}
+        <div className="pt-4">
+            <button onClick={handleLogout} className="w-full bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-2 p-4 text-rose-600 font-bold hover:bg-rose-50 transition-colors shadow-sm">
+                <LogOut className="w-5 h-5" /> Log Out
+            </button>
         </div>
 
       </div>

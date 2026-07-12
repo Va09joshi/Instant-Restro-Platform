@@ -3,13 +3,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  apiKey: "AIzaSyBMrXN9ZUMsN9vBbEFm5HbSFFrAAhdErhg",
+  authDomain: "table-39897.firebaseapp.com",
+  projectId: "table-39897",
+  storageBucket: "table-39897.firebasestorage.app",
+  messagingSenderId: "66339357183",
+  appId: "1:66339357183:web:70c3cab06671ffd1f1a7ca",
+  measurementId: "G-YVMH9XN0CB"
 };
 
 // Initialize Firebase only once

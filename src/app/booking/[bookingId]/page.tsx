@@ -82,7 +82,7 @@ export default function BookingPassPage() {
       <div className="max-w-md w-full">
         
         {/* Entry Pass Card */}
-        <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           
           {/* Header */}
           <div className="bg-[#1A3636] px-8 pt-8 pb-7 text-white relative overflow-hidden">

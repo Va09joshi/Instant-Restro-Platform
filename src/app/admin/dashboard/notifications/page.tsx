@@ -27,37 +27,54 @@ export default function AdminNotificationsPage() {
         const snap = await getDocs(q);
         const recentBookings = snap.docs.map(doc => {
           const data = doc.data() as Booking;
+          const createdAt = data.createdAt || Date.now();
+          
           return {
             id: doc.id,
-            title: `New VIP Booking`,
-            description: `A new reservation for ${data.guests} guests on ${data.date} at ${data.time}.`,
+            title: `New Booking`,
+            description: `A new reservation for ${data.guests} guests on ${data.date} at ${data.time} by ${data.guestName || 'Guest'}.`,
             type: 'booking' as const,
-            time: 'Just now', // Ideally derived from createdAt timestamp
+            timestamp: createdAt,
             isNew: true
           };
         });
         
-        // Add some mock system notifications for variety
-        const systemNotifs: AppNotification[] = [
-          {
-            id: 'sys-1',
-            title: 'Platform Maintenance',
-            description: 'Scheduled maintenance will occur on Sunday at 2 AM EST.',
-            type: 'system',
-            time: '2 hours ago',
-            isNew: false
-          },
-          {
-            id: 'sys-2',
-            title: 'New Restaurant Onboarded',
-            description: 'The Golden Spoon has completed their registration and is now live.',
-            type: 'restaurant',
-            time: '1 day ago',
-            isNew: false
-          }
-        ];
+        // Fetch recent restaurant signups
+        const usersQ = query(collection(db, "users"), orderBy("createdAt", "desc"), limit(10));
+        const usersSnap = await getDocs(usersQ);
+        const recentRestaurants = usersSnap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as any))
+          .filter(user => user.role === 'RESTAURANT')
+          .map(user => {
+             const createdDate = user.createdAt ? new Date(user.createdAt).getTime() : Date.now();
+             return {
+               id: `sys-${user.id}`,
+               title: 'New Restaurant Onboarded',
+               description: `${user.name || user.email} has completed their registration and is now active.`,
+               type: 'restaurant' as const,
+               timestamp: createdDate,
+               isNew: true
+             };
+          });
 
-        setNotifications([...recentBookings, ...systemNotifs]);
+        const allNotifications = [...recentBookings, ...recentRestaurants]
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .map(n => {
+            // Simple relative time formatter
+            const diffMs = Date.now() - n.timestamp;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            
+            let timeStr = "Just now";
+            if (diffDays > 0) timeStr = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            else if (diffHours > 0) timeStr = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            else if (diffMins > 0) timeStr = `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+            
+            return { ...n, time: timeStr };
+          });
+
+        setNotifications(allNotifications);
       } catch (error) {
         console.error("Failed to fetch notifications:", error);
       } finally {
@@ -100,7 +117,7 @@ export default function AdminNotificationsPage() {
         </button>
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-xl shadow-slate-200/50 w-full p-2">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm w-full p-2">
         {notifications.length === 0 ? (
            <div className="p-16 text-center flex flex-col items-center">
              <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center mb-6">
