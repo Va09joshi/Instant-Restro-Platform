@@ -17,6 +17,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const registered = searchParams?.get("registered");
+  const redirectUrl = searchParams?.get("redirect");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -40,7 +41,9 @@ function LoginContent() {
         userRole = userDoc.data().role || "CUSTOMER";
       }
 
-      if (userRole === "RESTAURANT_ADMIN" || userRole === "RESTAURANT") {
+      if (redirectUrl) {
+        router.push(redirectUrl);
+      } else if (userRole === "RESTAURANT_ADMIN" || userRole === "RESTAURANT") {
         router.push("/restaurant/dashboard");
       } else if (userRole === "SYSTEM_ADMIN" || userRole === "ADMIN") {
         router.push("/admin/dashboard");
@@ -78,7 +81,9 @@ function LoginContent() {
         });
       }
 
-      if (userRole === "RESTAURANT_ADMIN" || userRole === "RESTAURANT") {
+      if (redirectUrl) {
+        router.push(redirectUrl);
+      } else if (userRole === "RESTAURANT_ADMIN" || userRole === "RESTAURANT") {
         router.push("/restaurant/dashboard");
       } else if (userRole === "SYSTEM_ADMIN" || userRole === "ADMIN") {
         router.push("/admin/dashboard");

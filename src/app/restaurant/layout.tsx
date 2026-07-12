@@ -1,23 +1,24 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
-import { Loader2, LogOut, Home, Calendar, ScanLine, Utensils, Settings, Menu } from "lucide-react";
+import { Loader2, LogOut, Home, Calendar, ScanLine, Utensils, Settings, Menu, X } from "lucide-react";
 
 export default function RestaurantLayout({ children }: { children: React.ReactNode }) {
   const { user, role, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Wait until auth is resolved
     if (!loading) {
       const publicPaths = ["/restaurant/apply"];
-      
+
       if (!user && !publicPaths.includes(pathname)) {
         router.push("/login");
       } else if (user && role !== "RESTAURANT" && !publicPaths.includes(pathname)) {
@@ -26,6 +27,11 @@ export default function RestaurantLayout({ children }: { children: React.ReactNo
       }
     }
   }, [user, role, loading, router, pathname]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   if (loading) {
     return (
@@ -41,10 +47,24 @@ export default function RestaurantLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 relative">
-      {/* Sidebar for B2B */}
-      <aside className="hidden md:flex w-64 bg-[#0A1616] text-white p-6 border-r border-neutral-800 flex-col fixed inset-y-0 left-0 z-50">
-        <h2 className="text-xl font-bold mb-8 px-2">Partner Portal</h2>
+    <div className="flex min-h-screen bg-slate-50 relative w-full overflow-x-hidden">
+      
+      {/* Mobile Menu Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar for B2B (Desktop & Mobile Drawer) */}
+      <aside className={`w-64 bg-[#0A1616] text-white p-6 border-r border-neutral-800 flex flex-col fixed inset-y-0 left-0 z-[100] transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex items-center justify-between mb-8 px-2">
+          <h2 className="text-xl font-bold">Partner Portal</h2>
+          <button className="md:hidden p-2 text-slate-400 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
         <nav className="space-y-1">
           {[
             { href: "/restaurant/dashboard", label: "Dashboard" },
@@ -57,14 +77,13 @@ export default function RestaurantLayout({ children }: { children: React.ReactNo
           ].map((link) => {
             const isActive = pathname === link.href;
             return (
-              <Link 
+              <Link
                 key={link.href}
-                href={link.href} 
-                className={`block px-4 py-2.5 rounded-lg transition-colors font-medium text-sm ${
-                  isActive 
+                href={link.href}
+                className={`block px-4 py-2.5 rounded-lg transition-colors font-medium text-sm ${isActive
                     ? (link.isScan ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/10 text-white')
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
+                  }`}
               >
                 {link.isScan ? (
                   <span className="flex items-center gap-2">
@@ -78,9 +97,9 @@ export default function RestaurantLayout({ children }: { children: React.ReactNo
             );
           })}
         </nav>
-        
+
         <div className="mt-auto pt-6 border-t border-white/10">
-          <button 
+          <button
             onClick={async () => {
               await signOut(auth);
               router.push("/login");
@@ -96,31 +115,48 @@ export default function RestaurantLayout({ children }: { children: React.ReactNo
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 md:ml-64 pb-24 md:pb-8">
+      <main className="flex-1 w-full min-w-0 p-4 md:p-8 md:ml-64 pb-24 md:pb-8">
         {children}
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around items-center p-3 z-50 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      <nav className="md:hidden fixed bottom-4 left-4 right-4 bg-[#0A1616]/90 backdrop-blur-2xl border border-white/10 flex justify-around items-center p-2.5 z-50 rounded-2xl shadow-2xl shadow-black/50">
         {[
           { href: "/restaurant/dashboard", icon: Home, label: "Home" },
           { href: "/restaurant/bookings", icon: Calendar, label: "Bookings" },
           { href: "/restaurant/scanner", icon: ScanLine, label: "Scan" },
-          { href: "/restaurant/menu", icon: Utensils, label: "Menu" },
-          { href: "/restaurant/settings", icon: Settings, label: "Settings" },
-        ].map((link) => {
-          const isActive = pathname === link.href;
+          { action: () => setIsMobileMenuOpen(true), icon: Menu, label: "More" },
+        ].map((link, idx) => {
+          const isActive = link.href ? pathname === link.href : false;
           const Icon = link.icon;
+          
+          if (link.action) {
+            return (
+              <button
+                key="more-btn"
+                onClick={link.action}
+                className="flex flex-col items-center gap-1 min-w-[64px] text-slate-400 hover:text-white"
+              >
+                <div className="p-1.5 rounded-xl transition-all bg-transparent">
+                  <Icon className="w-5 h-5 stroke-2" />
+                </div>
+                <span className="text-[10px] font-bold text-slate-500">
+                  {link.label}
+                </span>
+              </button>
+            );
+          }
+
           return (
-            <Link 
+            <Link
               key={link.href}
               href={link.href}
-              className={`flex flex-col items-center gap-1 min-w-[64px] ${isActive ? 'text-[#009b65]' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`flex flex-col items-center gap-1 min-w-[64px] ${isActive ? 'text-emerald-400' : 'text-slate-400 hover:text-white'}`}
             >
-              <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-[#e6f7ef]' : 'bg-transparent'}`}>
+              <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-emerald-500/20' : 'bg-transparent'}`}>
                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
               </div>
-              <span className={`text-[10px] font-bold ${isActive ? 'text-[#009b65]' : 'text-slate-500'}`}>
+              <span className={`text-[10px] font-bold ${isActive ? 'text-emerald-400' : 'text-slate-500'}`}>
                 {link.label}
               </span>
             </Link>

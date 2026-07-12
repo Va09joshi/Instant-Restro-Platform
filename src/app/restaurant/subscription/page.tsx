@@ -51,7 +51,7 @@ export default function SubscriptionPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
         
         {/* Basic Plan */}
-        <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm flex flex-col items-center text-center hover:border-emerald-200 transition-colors">
+        <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm flex flex-col items-center text-center hover:border-emerald-200 transition-colors">
           <h3 className="text-2xl font-bold text-slate-800 mb-2">Basic</h3>
           <p className="text-slate-500 text-sm mb-6">Perfect for small cafes and diners.</p>
           <div className="mb-8">
@@ -79,7 +79,7 @@ export default function SubscriptionPage() {
         {/* Pro Plan */}
         <motion.div 
           initial={{ y: 20 }} animate={{ y: 0 }}
-          className="bg-white rounded-[2rem] p-8 border-2 border-emerald-500 shadow-xl flex flex-col items-center text-center relative"
+          className="bg-white rounded-2xl p-8 border-2 border-emerald-500 shadow-xl flex flex-col items-center text-center relative"
         >
           <div className="absolute -top-4 bg-emerald-500 text-white px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest shadow-md">
             Most Popular
@@ -112,7 +112,7 @@ export default function SubscriptionPage() {
 
         {/* Payment Methods */}
         <div className="space-y-6">
-          <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm text-center flex flex-col items-center">
+          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm text-center flex flex-col items-center">
             <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-4">
               <CreditCard className="w-6 h-6 text-blue-500" />
             </div>

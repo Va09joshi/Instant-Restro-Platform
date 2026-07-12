@@ -4,16 +4,33 @@ import { motion } from "framer-motion";
 import { Search, MapPin, ArrowRight, Clock, Shield, Users, Heart, QrCode, CalendarCheck, Utensils, Star, X, Quote } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
+import { collection, query, limit, getDocs } from "firebase/firestore";
+import { RestaurantSettings } from "@/types/firestore";
 
 export default function Home() {
   const [location, setLocation] = useState("");
+  const [featuredRestaurants, setFeaturedRestaurants] = useState<RestaurantSettings[]>([]);
   const router = useRouter();
   const { user, role, loading } = useAuth();
+
+  useEffect(() => {
+    async function loadFeatured() {
+      try {
+        const q = query(collection(db, "restaurantSettings"), limit(3));
+        const snap = await getDocs(q);
+        const data = snap.docs.map(doc => doc.data() as RestaurantSettings);
+        setFeaturedRestaurants(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    loadFeatured();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -645,9 +662,17 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
-          {[
+          {(featuredRestaurants.length > 0 ? featuredRestaurants.map(r => ({
+            id: r.id,
+            name: r.name || "Unnamed Restaurant",
+            rating: 4.8,
+            price: "$$",
+            cuisine: (r.description && r.description.length > 40) ? r.description.substring(0, 40) + "..." : (r.description || "Local Cuisine"),
+            tags: ["Dine-in", "Great Atmosphere"],
+            image: r.logoUrl || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1974&auto=format&fit=crop"
+          })) : [
             {
-              id: 1,
+              id: "1",
               name: "The Artisan Kitchen",
               rating: 4.9,
               price: "$$$",
@@ -656,7 +681,7 @@ export default function Home() {
               image: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1974&auto=format&fit=crop"
             },
             {
-              id: 2,
+              id: "2",
               name: "Sakura Sushi Bar",
               rating: 4.8,
               price: "$$",
@@ -665,7 +690,7 @@ export default function Home() {
               image: "https://images.unsplash.com/photo-1579027989536-b7b1f875659b?q=80&w=2070&auto=format&fit=crop"
             },
             {
-              id: 3,
+              id: "3",
               name: "Bella Napoli",
               rating: 4.7,
               price: "$$",
@@ -673,31 +698,31 @@ export default function Home() {
               tags: ["Wood-fired Pizza", "Family friendly"],
               image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop"
             }
-          ].map((restaurant) => (
-            <div key={restaurant.id} className="group relative bg-white rounded-[2rem] overflow-hidden shadow-sm border border-neutral-100 hover:shadow-xl hover:shadow-neutral-200/50 transition-all duration-500">
+          ]).slice(0, 3).map((restaurant) => (
+            <Link href={`/r/${restaurant.id}`} key={restaurant.id} className="group relative bg-white rounded-2xl overflow-hidden shadow-sm border border-neutral-100 hover:shadow-xl hover:shadow-neutral-200/50 transition-all duration-500 block">
               <div className="aspect-[4/3] relative overflow-hidden">
                 <img
                   src={restaurant.image}
                   alt={restaurant.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-neutral-900 shadow-sm flex items-center gap-1">
+                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-neutral-900 shadow-sm flex items-center gap-1 z-10">
                   <span className="text-amber-500">★</span> {restaurant.rating}
                 </div>
               </div>
               <div className="p-6">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-xl font-bold text-neutral-900">{restaurant.name}</h3>
-                  <span className="text-sm font-medium text-neutral-500">{restaurant.price}</span>
+                  <h3 className="text-xl font-bold text-neutral-900 line-clamp-1">{restaurant.name}</h3>
+                  <span className="text-sm font-medium text-neutral-500 whitespace-nowrap ml-2">{restaurant.price}</span>
                 </div>
-                <p className="text-neutral-500 text-sm mb-4">{restaurant.cuisine}</p>
-                <div className="flex gap-2">
+                <p className="text-neutral-500 text-sm mb-4 line-clamp-1">{restaurant.cuisine}</p>
+                <div className="flex gap-2 overflow-hidden">
                   {restaurant.tags.map(tag => (
-                    <span key={tag} className="text-xs font-medium px-2.5 py-1 bg-neutral-100 rounded-md text-neutral-600">{tag}</span>
+                    <span key={tag} className="text-xs font-medium px-2.5 py-1 bg-neutral-100 rounded-md text-neutral-600 whitespace-nowrap">{tag}</span>
                   ))}
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
@@ -794,7 +819,7 @@ export default function Home() {
                   hidden: { opacity: 0, y: 30 },
                   visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 20 } }
                 }}
-                className="bg-white p-10 rounded-[2rem] border border-neutral-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] relative group hover:-translate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(16,185,129,0.15)] transition-all duration-500 flex flex-col justify-between"
+                className="bg-white p-10 rounded-2xl border border-neutral-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] relative group hover:-translate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(16,185,129,0.15)] transition-all duration-500 flex flex-col justify-between"
               >
                 <div>
                   <Quote className="w-12 h-12 text-emerald-100 absolute top-8 right-8 transform group-hover:scale-110 group-hover:text-emerald-200 transition-all duration-500" />

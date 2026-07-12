@@ -41,7 +41,7 @@ export default function AdminRestaurantsPage() {
         <p className="text-slate-500">Manage and view all platform partners.</p>
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-xl shadow-slate-200/50 w-full">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm w-full">
         {restaurants.length === 0 ? (
           <div className="p-16 text-center flex flex-col items-center">
             <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6">
@@ -56,8 +56,8 @@ export default function AdminRestaurantsPage() {
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] uppercase tracking-widest text-slate-500 font-bold">
                   <th className="px-6 py-5 font-bold">Restaurant Details</th>
-                  <th className="px-6 py-5 font-bold">Location</th>
-                  <th className="px-6 py-5 font-bold">Operating Hours</th>
+                  <th className="px-6 py-5 font-bold hidden md:table-cell">Location</th>
+                  <th className="px-6 py-5 font-bold hidden lg:table-cell">Operating Hours</th>
                   <th className="px-6 py-5 font-bold">Status</th>
                 </tr>
               </thead>
@@ -75,13 +75,13 @@ export default function AdminRestaurantsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-6 py-5 hidden md:table-cell">
                       <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
                         <MapPin className="w-4 h-4 text-slate-400" />
                         <span className="line-clamp-1">{restaurant.address || "No address provided"}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-6 py-5 hidden lg:table-cell">
                       <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
                         <Clock className="w-4 h-4 text-slate-400" />
                         <span>{restaurant.openTime} - {restaurant.closeTime}</span>

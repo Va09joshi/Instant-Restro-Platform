@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { useEffect, useState, useRef } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 import { CheckCircle2, Loader2, ScanLine, User, Users, CalendarDays, Clock, UtensilsCrossed, Armchair, RotateCcw } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -14,23 +14,49 @@ export default function QRScannerPage() {
   const [manualId, setManualId] = useState("");
   const [checkedIn, setCheckedIn] = useState(false);
 
-  useEffect(() => {
-    const scanner = new Html5QrcodeScanner("reader", {
-      qrbox: { width: 250, height: 250 },
-      fps: 5,
-    }, false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
-    scanner.render(
-      (result) => {
-        handleScanSuccess(result);
-      },
-      (error) => {
-        // Ignore errors (it errors continuously while searching for QR)
+  const startScanning = async () => {
+    try {
+      setCameraError("");
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode("reader");
       }
-    );
+      
+      await scannerRef.current.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          handleScanSuccess(decodedText);
+          stopScanning();
+        },
+        (errorMessage) => {}
+      );
+      setIsScanning(true);
+    } catch (err: any) {
+      console.error(err);
+      setCameraError("Could not access camera. Please allow camera permissions in your browser.");
+    }
+  };
 
+  const stopScanning = async () => {
+    if (scannerRef.current && isScanning) {
+      try {
+        await scannerRef.current.stop();
+      } catch (e) {
+        console.error("Failed to stop scanner", e);
+      }
+      setIsScanning(false);
+    }
+  };
+
+  useEffect(() => {
     return () => {
-      scanner.clear().catch(console.error);
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop().catch(console.error);
+      }
     };
   }, []);
 
@@ -89,7 +115,7 @@ export default function QRScannerPage() {
     setScanResult(null);
     setGuestDetails(null);
     setCheckedIn(false);
-    window.location.reload();
+    startScanning();
   };
 
   return (
@@ -112,8 +138,39 @@ export default function QRScannerPage() {
           <div className="p-5 flex-1 flex flex-col">
             {!scanResult ? (
               <>
-                <div id="reader" className="w-full overflow-hidden rounded-xl"></div>
-                <p className="text-center text-slate-400 mt-4 font-medium text-xs">Align the QR code within the frame.</p>
+                <div className="relative w-full overflow-hidden rounded-2xl bg-slate-900 min-h-[300px] flex flex-col items-center justify-center">
+                  <div id="reader" className="w-full"></div>
+                  
+                  {!isScanning && (
+                    <div className="absolute inset-0 bg-slate-900/80 flex flex-col items-center justify-center z-10 p-6 text-center">
+                      <ScanLine className="w-12 h-12 text-emerald-400 mb-4" />
+                      <h3 className="text-white font-bold mb-2">Camera Access Required</h3>
+                      <p className="text-slate-400 text-xs mb-6 max-w-xs">Scan guest passes instantly using your device's back camera.</p>
+                      
+                      <button 
+                        onClick={startScanning}
+                        className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+                      >
+                        Start Scanner
+                      </button>
+                      
+                      {cameraError && (
+                        <p className="text-red-400 text-xs mt-4 max-w-xs">{cameraError}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {isScanning && (
+                   <div className="mt-4 flex flex-col items-center gap-2">
+                     <p className="text-center text-slate-500 font-medium text-xs">Scanning... Align the QR code within the frame.</p>
+                     <button 
+                       onClick={stopScanning}
+                       className="text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-wider"
+                     >
+                       Stop Camera
+                     </button>
+                   </div>
+                )}
                 
                 <div className="mt-6 pt-5 border-t border-slate-100">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">Manual Entry</p>

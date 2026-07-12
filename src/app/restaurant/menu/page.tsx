@@ -223,19 +223,19 @@ export default function RestaurantMenuPage() {
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-4rem)] flex flex-col animate-pulse">
-        <div className="flex justify-between items-center mb-6">
-          <div className="space-y-2">
-            <div className="w-64 h-8 bg-slate-200 rounded-lg"></div>
-            <div className="w-96 h-4 bg-slate-200 rounded-md"></div>
-          </div>
-          <div className="w-36 h-10 bg-slate-200 rounded-lg"></div>
+    <div className="flex flex-col space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="space-y-2">
+          <div className="w-64 h-8 bg-slate-200 rounded-lg"></div>
+          <div className="w-full max-w-md h-4 bg-slate-200 rounded-md"></div>
         </div>
-        <div className="flex-1 flex gap-6 min-h-0">
-          <div className="w-64 bg-slate-100 border border-slate-200 rounded-2xl"></div>
-          <div className="flex-1 bg-slate-100 border border-slate-200 rounded-2xl"></div>
-        </div>
+        <div className="w-36 h-10 bg-slate-200 rounded-lg"></div>
       </div>
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-[500px]">
+        <div className="w-full lg:w-64 h-48 lg:h-auto bg-slate-100 border border-slate-200 rounded-2xl shrink-0"></div>
+        <div className="flex-1 min-h-[400px] bg-slate-100 border border-slate-200 rounded-2xl"></div>
+      </div>
+    </div>
     );
   }
 
@@ -243,28 +243,29 @@ export default function RestaurantMenuPage() {
   const activeItems = items.filter(i => i.categoryId === activeCategoryId);
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
-      <div className="flex justify-between items-center mb-6">
+    <div className="flex flex-col space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Menu Management 2.0</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Menu Management 2.0</h1>
           <p className="text-slate-500 text-sm mt-1">Upload mouth-watering images and see exactly what your customers see.</p>
         </div>
-        <div className="flex gap-3">
-          <Button onClick={handleDownloadPDF} disabled={generatingPDF} variant="outline" className="gap-2 px-6">
-            {generatingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} 
-            {generatingPDF ? "Generating..." : "Download PDF"}
+        <div className="flex gap-3 w-full md:w-auto">
+          <Button onClick={handleDownloadPDF} disabled={generatingPDF} variant="outline" className="gap-2 flex-1 md:flex-none px-4 md:px-6">
+            {generatingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 shrink-0" />} 
+            <span className="hidden sm:inline">{generatingPDF ? "Generating..." : "Download PDF"}</span>
+            <span className="sm:hidden">{generatingPDF ? "Gen..." : "PDF"}</span>
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#1A3636] hover:bg-[#1A3636]/90 text-white gap-2 px-8">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Publish Menu
+          <Button onClick={handleSave} disabled={saving} className="bg-[#1A3636] hover:bg-[#1A3636]/90 text-white gap-2 flex-1 md:flex-none px-4 md:px-8">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 shrink-0" />}
+            <span className="whitespace-nowrap">Publish Menu</span>
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 flex gap-6 min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-[500px]">
         
-        {/* Column 1: Categories (Left) */}
-        <div className="w-64 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden shrink-0">
+        {/* Column 1: Categories (Left/Top) */}
+        <div className="w-full lg:w-64 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden shrink-0">
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
             <div className="flex items-center gap-2">
               <Folder className="w-4 h-4 text-[#1A3636]" />
@@ -275,7 +276,7 @@ export default function RestaurantMenuPage() {
             </Button>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          <div className="overflow-x-auto lg:overflow-x-hidden flex-none lg:flex-1 p-3 flex lg:flex-col gap-2 space-y-0 lg:space-y-1">
             {categories.length === 0 ? (
               <div className="text-center p-6 text-sm text-slate-400">Create a category to begin.</div>
             ) : (
@@ -283,7 +284,7 @@ export default function RestaurantMenuPage() {
                 <div 
                   key={cat.id}
                   onClick={() => setActiveCategoryId(cat.id)}
-                  className={`group flex items-center justify-between px-3 py-3 rounded-xl cursor-pointer transition-all border border-transparent
+                  className={`group flex items-center justify-between px-3 py-2 lg:py-3 rounded-xl cursor-pointer transition-all border border-transparent shrink-0 lg:shrink
                     ${activeCategoryId === cat.id ? 'bg-emerald-50 border-emerald-200 text-emerald-900 shadow-sm' : 'hover:bg-slate-50 hover:border-slate-200 text-slate-600'}
                   `}
                 >
@@ -300,7 +301,7 @@ export default function RestaurantMenuPage() {
                   </div>
                   
                   {activeCategoryId === cat.id && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 ml-2">
                       <button onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); }} className="p-1 hover:bg-red-100 text-red-500 rounded">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -328,8 +329,8 @@ export default function RestaurantMenuPage() {
                   <h2 className="text-xl font-bold text-slate-800">{activeCategory.name}</h2>
                   <p className="text-sm text-slate-500">{activeItems.length} items currently in this category</p>
                 </div>
-                <Button onClick={handleAddItem} className="gap-2 bg-[#1A3636] text-white hover:bg-[#1A3636]/90 shadow-md">
-                  <Plus className="w-4 h-4" /> Add Dish
+                <Button onClick={handleAddItem} className="gap-2 bg-[#1A3636] text-white hover:bg-[#1A3636]/90 shadow-md whitespace-nowrap">
+                  <Plus className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline">Add Dish</span><span className="sm:hidden">Add</span>
                 </Button>
               </div>
 

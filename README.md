@@ -1,5 +1,7 @@
 # Instant Restro Platform
 
+![Platform Screenshot](./public/screenshot.png)
+
 A Next.js (App Router) starter application for restaurant booking and management — built to be extended.
 
 ## Overview
